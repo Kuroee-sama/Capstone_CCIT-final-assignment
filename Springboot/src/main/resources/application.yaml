@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: Group-8
+  
+  datasource:
+    url: jdbc:mysql://localhost:3306/transaksi
+    username: root
+    password: 
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+
+server:
+  port: 8080
+
+# JWT Configuration
+jwt:
+  # Secret key untuk signing token (minimal 256-bit / 32 karakter, di-encode base64)
+  # PENTING: Ganti dengan secret key yang aman di production!
+  secret: "dGhpc2lzYXZlcnlzZWN1cmVzZWNyZXRrZXlmb3Jqd3RzaWduaW5nMTIzNDU2Nzg5MA=="
+  # Token expiration dalam milidetik (24 jam = 86400000)
+  expiration: 86400000
+

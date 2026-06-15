@@ -1,0 +1,662 @@
+{
+	"info": {
+		"_postman_id": "group8-transaction-api",
+		"name": "Group-8 Transaction API",
+		"description": "Complete API collection for Group-8 Transaction System.\n\nThis collection covers:\n- Authentication (Register, Login)\n- Karyawan Management (ADMIN only)\n- Menu Management (KARYAWAN)\n- Transaction Management (KARYAWAN)\n\n## Setup Instructions\n1. Create environment with variables: base_url, jwt_token, admin_token\n2. Set base_url to http://localhost:8080\n3. Run Register/Login to get tokens\n4. Use tokens in Authorization header",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "admin_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Auth - Autentikasi",
+			"description": "Endpoints for authentication (public, no token required)\nEndpoint untuk autentikasi (publik, tidak perlu token)",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/auth/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "health"]
+						},
+						"description": "Check if auth service is running.\nCek apakah service autentikasi berjalan."
+					}
+				},
+				{
+					"name": "Register KARYAWAN",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('jwt_token', jsonData.token);",
+									"    console.log('Token saved to jwt_token');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"kasir_andi\",\n    \"email\": \"andi@cafe.com\",\n    \"password\": \"password123\",\n    \"umur\": 25,\n    \"alamat\": \"Jl. Sudirman No. 123, Jakarta\",\n    \"tglLahir\": \"1999-05-15\",\n    \"noTelp\": \"081234567890\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register"]
+						},
+						"description": "Register new employee with KARYAWAN role.\nRegistrasi karyawan baru dengan role KARYAWAN.\n\nToken will be automatically saved to jwt_token variable."
+					}
+				},
+				{
+					"name": "Register ADMIN",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('admin_token', jsonData.token);",
+									"    console.log('Token saved to admin_token');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin_budi\",\n    \"email\": \"budi@cafe.com\",\n    \"password\": \"admin123\",\n    \"umur\": 30,\n    \"alamat\": \"Jl. Gatot Subroto No. 456, Jakarta\",\n    \"tglLahir\": \"1994-08-20\",\n    \"noTelp\": \"081234567891\",\n    \"role\": \"ADMIN\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "register"]
+						},
+						"description": "Register new employee with ADMIN role.\nRegistrasi karyawan baru dengan role ADMIN.\n\nToken will be automatically saved to admin_token variable."
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('jwt_token', jsonData.token);",
+									"    console.log('Token saved to jwt_token');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"kasir_andi\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Login with username/email and password.\nLogin dengan username/email dan password.\n\nYou can use email instead of username.\nAnda bisa menggunakan email sebagai pengganti username."
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Karyawan - Employee (ADMIN)",
+			"description": "Endpoints for managing employees. ADMIN role required.\nEndpoint untuk mengelola karyawan. Membutuhkan role ADMIN.",
+			"item": [
+				{
+					"name": "Get All Karyawan (Paginated)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{admin_token}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/karyawan?page=0&size=5&sortBy=karyawanId&sortDir=asc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "karyawan"],
+							"query": [
+								{"key": "page", "value": "0"},
+								{"key": "size", "value": "5"},
+								{"key": "sortBy", "value": "karyawanId"},
+								{"key": "sortDir", "value": "asc"}
+							]
+						},
+						"description": "Get all employees with pagination.\nAmbil semua karyawan dengan paginasi."
+					}
+				},
+				{
+					"name": "Get Karyawan by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{admin_token}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/karyawan/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "karyawan", "1"]
+						},
+						"description": "Get employee by ID.\nAmbil karyawan berdasarkan ID."
+					}
+				},
+				{
+					"name": "Create Karyawan",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{admin_token}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"kasir_citra\",\n    \"email\": \"citra@cafe.com\",\n    \"password\": \"password123\",\n    \"umur\": 22,\n    \"alamat\": \"Bandung\",\n    \"tglLahir\": \"2002-03-10\",\n    \"noTelp\": \"081234567892\",\n    \"role\": \"KARYAWAN\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/karyawan",
+							"host": ["{{base_url}}"],
+							"path": ["api", "karyawan"]
+						},
+						"description": "Create new employee (different from register, no token returned).\nBuat karyawan baru (berbeda dari register, tidak mengembalikan token)."
+					}
+				},
+				{
+					"name": "Bulk Create Karyawan (max 5)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{admin_token}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"username\": \"kasir_deni\",\n        \"email\": \"deni@cafe.com\",\n        \"password\": \"password123\",\n        \"umur\": 24,\n        \"role\": \"KARYAWAN\"\n    },\n    {\n        \"username\": \"kasir_eka\",\n        \"email\": \"eka@cafe.com\",\n        \"password\": \"password123\",\n        \"umur\": 26,\n        \"role\": \"KARYAWAN\"\n    }\n]"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/karyawan/bulk",
+							"host": ["{{base_url}}"],
+							"path": ["api", "karyawan", "bulk"]
+						},
+						"description": "Create multiple employees at once (max 5).\nBuat beberapa karyawan sekaligus (maks 5)."
+					}
+				},
+				{
+					"name": "Update Karyawan",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{admin_token}}", "type": "string"}]
+						},
+						"method": "PUT",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"kasir_andi_updated\",\n    \"email\": \"andi.updated@cafe.com\",\n    \"umur\": 26,\n    \"alamat\": \"Surabaya\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/karyawan/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "karyawan", "1"]
+						},
+						"description": "Update employee by ID.\nUpdate karyawan berdasarkan ID."
+					}
+				},
+				{
+					"name": "Delete Karyawan",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{admin_token}}", "type": "string"}]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/karyawan/2",
+							"host": ["{{base_url}}"],
+							"path": ["api", "karyawan", "2"]
+						},
+						"description": "Delete employee by ID.\nHapus karyawan berdasarkan ID."
+					}
+				},
+				{
+					"name": "Bulk Delete Karyawan (max 5)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{admin_token}}", "type": "string"}]
+						},
+						"method": "DELETE",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"ids\": [3, 4, 5]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/karyawan/bulk",
+							"host": ["{{base_url}}"],
+							"path": ["api", "karyawan", "bulk"]
+						},
+						"description": "Delete multiple employees at once (max 5).\nHapus beberapa karyawan sekaligus (maks 5)."
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Menu (KARYAWAN)",
+			"description": "Endpoints for managing menu items. KARYAWAN role required.\nEndpoint untuk mengelola menu. Membutuhkan role KARYAWAN.",
+			"item": [
+				{
+					"name": "Get All Menu (Paginated)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/menu?page=0&size=5&sortBy=menuId&sortDir=asc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu"],
+							"query": [
+								{"key": "page", "value": "0"},
+								{"key": "size", "value": "5"},
+								{"key": "sortBy", "value": "menuId"},
+								{"key": "sortDir", "value": "asc"}
+							]
+						},
+						"description": "Get all menu items with pagination.\nAmbil semua item menu dengan paginasi."
+					}
+				},
+				{
+					"name": "Get Menu by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/menu/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu", "1"]
+						},
+						"description": "Get menu item by ID.\nAmbil item menu berdasarkan ID."
+					}
+				},
+				{
+					"name": "Get Menu by Kategori",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/menu/kategori/makanan?page=0&size=5",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu", "kategori", "makanan"],
+							"query": [
+								{"key": "page", "value": "0"},
+								{"key": "size", "value": "5"}
+							]
+						},
+						"description": "Get menu items by category (makanan/minuman).\nAmbil item menu berdasarkan kategori (makanan/minuman)."
+					}
+				},
+				{
+					"name": "Create Menu",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"namaItem\": \"Nasi Goreng Spesial\",\n    \"kategori\": \"makanan\",\n    \"harga\": 28000.00,\n    \"deskripsi\": \"Nasi goreng dengan telur, ayam, dan kerupuk\",\n    \"stok\": 100\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menu",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu"]
+						},
+						"description": "Create new menu item.\nBuat item menu baru."
+					}
+				},
+				{
+					"name": "Bulk Create Menu (max 5)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"namaItem\": \"Es Teh Manis\",\n        \"kategori\": \"minuman\",\n        \"harga\": 5000.00,\n        \"deskripsi\": \"Teh manis dingin\",\n        \"stok\": 200\n    },\n    {\n        \"namaItem\": \"Kopi Susu\",\n        \"kategori\": \"minuman\",\n        \"harga\": 15000.00,\n        \"deskripsi\": \"Kopi dengan susu segar\",\n        \"stok\": 150\n    }\n]"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menu/bulk",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu", "bulk"]
+						},
+						"description": "Create multiple menu items at once (max 5).\nBuat beberapa item menu sekaligus (maks 5)."
+					}
+				},
+				{
+					"name": "Update Menu (Full)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "PUT",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"namaItem\": \"Nasi Goreng Premium\",\n    \"kategori\": \"makanan\",\n    \"harga\": 35000.00,\n    \"deskripsi\": \"Nasi goreng premium dengan seafood\",\n    \"stok\": 75\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menu/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu", "1"]
+						},
+						"description": "Full update of menu item by ID.\nUpdate lengkap item menu berdasarkan ID."
+					}
+				},
+				{
+					"name": "Update Stok Only (PATCH)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "PATCH",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"stok\": 120\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menu/1/stok",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu", "1", "stok"]
+						},
+						"description": "Update only stock of menu item.\nUpdate hanya stok item menu."
+					}
+				},
+				{
+					"name": "Delete Menu",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/menu/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu", "1"]
+						},
+						"description": "Delete menu item by ID.\nHapus item menu berdasarkan ID."
+					}
+				},
+				{
+					"name": "Bulk Delete Menu (max 5)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "DELETE",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"ids\": [2, 3]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/menu/bulk",
+							"host": ["{{base_url}}"],
+							"path": ["api", "menu", "bulk"]
+						},
+						"description": "Delete multiple menu items at once (max 5).\nHapus beberapa item menu sekaligus (maks 5)."
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Transaksi - Transaction (KARYAWAN)",
+			"description": "Endpoints for managing transactions. KARYAWAN role required.\nEndpoint untuk mengelola transaksi. Membutuhkan role KARYAWAN.",
+			"item": [
+				{
+					"name": "Get All Transaksi (Paginated)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/transaksi?page=0&size=5&sortBy=transaksiId&sortDir=desc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "transaksi"],
+							"query": [
+								{"key": "page", "value": "0"},
+								{"key": "size", "value": "5"},
+								{"key": "sortBy", "value": "transaksiId"},
+								{"key": "sortDir", "value": "desc"}
+							]
+						},
+						"description": "Get all transactions with pagination.\nAmbil semua transaksi dengan paginasi."
+					}
+				},
+				{
+					"name": "Get Transaksi by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/transaksi/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "transaksi", "1"]
+						},
+						"description": "Get transaction by ID.\nAmbil transaksi berdasarkan ID."
+					}
+				},
+				{
+					"name": "Get Transaksi by Karyawan ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/transaksi/karyawan/1?page=0&size=5",
+							"host": ["{{base_url}}"],
+							"path": ["api", "transaksi", "karyawan", "1"],
+							"query": [
+								{"key": "page", "value": "0"},
+								{"key": "size", "value": "5"}
+							]
+						},
+						"description": "Get transactions by specific karyawan ID.\nAmbil transaksi berdasarkan ID karyawan tertentu."
+					}
+				},
+				{
+					"name": "Get My Transaksi",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/transaksi/my?page=0&size=5",
+							"host": ["{{base_url}}"],
+							"path": ["api", "transaksi", "my"],
+							"query": [
+								{"key": "page", "value": "0"},
+								{"key": "size", "value": "5"}
+							]
+						},
+						"description": "Get current user's transactions (karyawanId from JWT).\nAmbil transaksi user saat ini (karyawanId dari JWT)."
+					}
+				},
+				{
+					"name": "Create Transaksi with Details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"details\": [\n        {\n            \"menuId\": 1,\n            \"jumlah\": 2\n        },\n        {\n            \"menuId\": 2,\n            \"jumlah\": 3\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/transaksi",
+							"host": ["{{base_url}}"],
+							"path": ["api", "transaksi"]
+						},
+						"description": "Create new transaction with menu items.\nBuat transaksi baru dengan item menu.\n\nNOTE: Stock will be reduced automatically!\nCATATAN: Stok akan dikurangi secara otomatis!"
+					}
+				},
+				{
+					"name": "Get Transaksi Detail",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/transaksi/1/detail",
+							"host": ["{{base_url}}"],
+							"path": ["api", "transaksi", "1", "detail"]
+						},
+						"description": "Get all detail items of a transaction.\nAmbil semua item detail dari transaksi."
+					}
+				},
+				{
+					"name": "Add Detail to Transaksi",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [{"key": "token", "value": "{{jwt_token}}", "type": "string"}]
+						},
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"menuId\": 3,\n    \"jumlah\": 2\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/transaksi/1/detail",
+							"host": ["{{base_url}}"],
+							"path": ["api", "transaksi", "1", "detail"]
+						},
+						"description": "Add new item to existing transaction.\nTambahkan item baru ke transaksi yang sudah ada.\n\nNOTE: Stock will be reduced and total will be updated!\nCATATAN: Stok akan dikurangi dan total akan diupdate!"
+					}
+				}
+			]
+		}
+	]
+}
