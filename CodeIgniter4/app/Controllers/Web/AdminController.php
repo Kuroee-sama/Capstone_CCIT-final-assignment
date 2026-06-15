@@ -90,20 +90,37 @@ class AdminController extends BaseController {
             }
 
             // Check stock
-            if ($menu->stok < $item->qty) {
+            $requestedQty = (int) ($item->qty ?? 0);
+            if ($requestedQty <= 0) {
                 $db->transRollback();
                 return $this->response->setJSON([
-                    'status' => 'error', 
-                    'message' => 'Stok tidak cukup untuk: ' . $menu->nama_item . '. Stok: ' . $menu->stok
+                    'status' => 'error',
+                    'code' => 'INVALID_QTY',
+                    'message' => 'Jumlah item tidak valid untuk: ' . $menu->nama_item,
+                    'menu_name' => $menu->nama_item,
+                    'requested_qty' => $requestedQty,
                 ])->setStatusCode(400);
             }
 
-            $subtotal = $menu->harga * $item->qty;
+            if ((int) $menu->stok < $requestedQty) {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'code' => 'INSUFFICIENT_STOCK',
+                    'message' => 'Stok ' . $menu->nama_item . ' tidak mencukupi. Stok tersedia ' . (int) $menu->stok . ', jumlah diminta ' . $requestedQty . '.',
+                    'menu_id' => (int) $menu->menu_id,
+                    'menu_name' => $menu->nama_item,
+                    'available_stock' => (int) $menu->stok,
+                    'requested_qty' => $requestedQty,
+                ])->setStatusCode(400);
+            }
+
+            $subtotal = $menu->harga * $requestedQty;
             $totalAmount += $subtotal;
 
             $processedItems[] = [
                 'menu_id'    => $item->menu_id,
-                'jumlah'     => $item->qty,
+                'jumlah'     => $requestedQty,
                 'harga'      => $menu->harga,
                 'total_harga' => $subtotal,
             ];
@@ -111,7 +128,7 @@ class AdminController extends BaseController {
             // Reduce stock
             $db->table('menu')
                 ->where('menu_id', $item->menu_id)
-                ->set('stok', 'stok - ' . (int)$item->qty, false)
+                ->set('stok', 'stok - ' . $requestedQty, false)
                 ->update();
         }
 

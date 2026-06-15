@@ -32,6 +32,11 @@
         display: inline-block; margin-top: 5px; background: #fff3e0; color: #e67e22; 
         padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: bold; text-transform: uppercase; 
     }
+    .menu-item-card .stock-line { margin-top: 10px; font-size: 12px; color: #636e72; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .stock-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 54px; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; }
+    .stock-safe { background: #eafaf1; color: #1e8449; }
+    .stock-low { background: #fff4de; color: #b7791f; }
+    .stock-out { background: #ffe8e8; color: #c0392b; }
     .menu-item-card .item-footer { margin-top: 15px; display: flex; justify-content: space-between; align-items: center; }
     .menu-item-card .item-price { font-weight: 700; color: #2d3436; }
     .menu-item-card .item-add { 
@@ -54,9 +59,17 @@
     }
     .cart-item strong { font-size: 14px; display: block; }
     .cart-item small { color: #636e72; }
-    .cart-item .cart-right { display: flex; align-items: center; gap: 10px; }
+    .cart-item .cart-main { min-width: 0; flex: 1; }
+    .cart-item .cart-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
     .cart-item .cart-subtotal { font-weight: bold; color: #2d3436; white-space: nowrap; }
+    .qty-control { display: flex; align-items: center; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+    .qty-btn { width: 28px; height: 28px; border: none; border-radius: 8px; background: #2d3436; color: #fff; font-weight: 800; cursor: pointer; line-height: 1; }
+    .qty-btn:hover { filter: brightness(1.08); }
+    .qty-input { width: 58px; height: 28px; border: 1px solid #dfe6e9; border-radius: 8px; text-align: center; font-weight: 700; color: #2d3436; outline: none; font-family: 'Inter', sans-serif; }
+    .qty-input:focus { border-color: #e67e22; box-shadow: 0 0 0 3px rgba(230,126,34,0.12); }
+    .qty-max { height: 28px; border: none; border-radius: 8px; padding: 0 10px; background: #fff3e0; color: #d35400; font-size: 11px; font-weight: 800; cursor: pointer; font-family: 'Inter', sans-serif; }
     .btn-remove { background: #ff7675; color: white; border: none; width: 24px; height: 24px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+    .btn-remove-item { background: #fff0f0; color: #d63031; border: none; min-width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 800; }
 
     .totals { background: #f8f9fa; padding: 20px; border-radius: 15px; }
     .total-row { display: flex; justify-content: space-between; margin-bottom: 10px; color: #636e72; }
@@ -77,6 +90,18 @@
     .modal-content { 
         background: white; width: 100%; max-width: 380px; padding: 30px; 
         border-radius: 20px; text-align: center; max-height: 90vh; overflow-y: auto;
+    }
+    .modal-content.modal-alert-box { max-width: 430px; text-align: left; }
+    .alert-icon {
+        width: 54px; height: 54px; border-radius: 16px; display: flex; align-items: center; justify-content: center;
+        background: #fff4de; color: #d35400; font-size: 26px; margin-bottom: 18px;
+    }
+    .alert-title { margin: 0 0 8px; color: #2d3436; font-size: 20px; }
+    .alert-message { margin: 0 0 18px; color: #636e72; line-height: 1.55; font-size: 14px; }
+    .alert-detail-box { background: #fff8ed; border: 1px solid #ffe3b8; color: #8a4b00; border-radius: 12px; padding: 12px 14px; margin-bottom: 18px; font-size: 13px; line-height: 1.45; display: none; }
+    .btn-alert-ok {
+        width: 100%; border: none; padding: 14px 16px; border-radius: 12px; background: #2d3436; color: #fff;
+        font-weight: 700; font-family: 'Inter', sans-serif; cursor: pointer;
     }
     .success-icon { 
         background: #2ecc71; color: white; width: 60px; height: 60px; border-radius: 50%; 
@@ -124,11 +149,20 @@
             </div>
             <div class="menu-items-grid">
                 <?php foreach($menu as $m): ?>
+                <?php
+                    $stokMenu = (int) ($m['stok'] ?? 0);
+                    $stockClass = $stokMenu <= 0 ? 'stock-out' : ($stokMenu <= 10 ? 'stock-low' : 'stock-safe');
+                ?>
                 <div class="menu-item-card" 
                      data-nama="<?= strtolower($m['nama_item']) ?>"
-                     onclick="tambahKeKeranjang(<?= $m['menu_id'] ?>, '<?= htmlspecialchars($m['nama_item'], ENT_QUOTES) ?>', <?= $m['harga'] ?>)">
+                     data-stok="<?= $stokMenu ?>"
+                     onclick="tambahKeKeranjang(<?= $m['menu_id'] ?>, '<?= htmlspecialchars($m['nama_item'], ENT_QUOTES) ?>', <?= $m['harga'] ?>, <?= $stokMenu ?>)">
                     <span class="item-name"><?= $m['nama_item'] ?></span>
                     <span class="item-badge"><?= $m['nama_kategori'] ?? 'Lainnya' ?></span>
+                    <div class="stock-line">
+                        <span>Stok tersedia</span>
+                        <span class="stock-badge <?= $stockClass ?>"><?= $stokMenu ?></span>
+                    </div>
                     <div class="item-footer">
                         <span class="item-price">Rp <?= number_format($m['harga'], 0, ',', '.') ?></span>
                         <button class="item-add" type="button">+</button>
@@ -185,6 +219,17 @@
     </div>
 </div>
 
+<!-- Modal Peringatan / Error Transaksi -->
+<div id="modal-alert" class="modal-overlay">
+    <div class="modal-content modal-alert-box">
+        <div id="alertIcon" class="alert-icon">!</div>
+        <h3 id="alertTitle" class="alert-title">Peringatan</h3>
+        <p id="alertMessage" class="alert-message">Terjadi kesalahan.</p>
+        <div id="alertDetail" class="alert-detail-box"></div>
+        <button type="button" class="btn-alert-ok" onclick="closeAppAlert()">Mengerti</button>
+    </div>
+</div>
+
 <script>
     let keranjang = {};
 
@@ -206,23 +251,109 @@
     // ==========================================
     // KERANJANG — Tambah, hapus, update
     // ==========================================
-    function tambahKeKeranjang(menuId, nama, harga) {
+    function tambahKeKeranjang(menuId, nama, harga, stok) {
+        stok = Number(stok) || 0;
         const key = menuId + '_' + nama;
+        const qtySekarang = keranjang[key] ? keranjang[key].qty : 0;
+
+        if (qtySekarang >= stok) {
+            showStockLimitAlert({ nama, stok, qtySekarang, requestedQty: qtySekarang + 1 });
+            return;
+        }
+
         if (keranjang[key]) {
             keranjang[key].qty += 1;
         } else {
-            keranjang[key] = { menu_id: menuId, nama: nama, harga: harga, qty: 1 };
+            keranjang[key] = { menu_id: menuId, nama: nama, harga: harga, stok: stok, qty: 1 };
         }
         updateCart();
     }
 
-    function hapusItem(key) {
-        if (keranjang[key].qty > 1) {
-            keranjang[key].qty -= 1;
+    function tambahQtyCheckout(key) {
+        const item = keranjang[key];
+        if (!item) return;
+
+        if (item.qty >= item.stok) {
+            showStockLimitAlert({
+                nama: item.nama,
+                stok: item.stok,
+                qtySekarang: item.qty,
+                requestedQty: item.qty + 1
+            });
+            return;
+        }
+
+        item.qty += 1;
+        updateCart();
+    }
+
+    function kurangiQtyCheckout(key) {
+        const item = keranjang[key];
+        if (!item) return;
+
+        if (item.qty > 1) {
+            item.qty -= 1;
         } else {
             delete keranjang[key];
         }
         updateCart();
+    }
+
+    function ubahQtyCheckout(key, value) {
+        const item = keranjang[key];
+        if (!item) return;
+
+        let requestedQty = parseInt(value, 10);
+        if (Number.isNaN(requestedQty)) {
+            updateCart();
+            return;
+        }
+
+        if (requestedQty <= 0) {
+            delete keranjang[key];
+            updateCart();
+            return;
+        }
+
+        if (requestedQty > item.stok) {
+            showStockLimitAlert({
+                nama: item.nama,
+                stok: item.stok,
+                qtySekarang: item.qty,
+                requestedQty: requestedQty
+            });
+            item.qty = item.stok;
+            updateCart();
+            return;
+        }
+
+        item.qty = requestedQty;
+        updateCart();
+    }
+
+    function setQtyMaxCheckout(key) {
+        const item = keranjang[key];
+        if (!item) return;
+        item.qty = item.stok;
+        updateCart();
+    }
+
+    function hapusItem(key) {
+        kurangiQtyCheckout(key);
+    }
+
+    function hapusSemuaItem(key) {
+        if (!keranjang[key]) return;
+        delete keranjang[key];
+        updateCart();
+    }
+
+    function showStockLimitAlert({ nama, stok, qtySekarang, requestedQty }) {
+        showAppAlert({
+            title: 'Stok Tidak Cukup',
+            message: `Pesanan ${nama} tidak dapat ditambahkan karena jumlah melebihi stok yang tersedia.`,
+            detail: `Stok tersedia: ${stok}<br>Jumlah di keranjang: ${qtySekarang}<br>Jumlah diminta: ${requestedQty}`
+        });
     }
 
     function updateCart() {
@@ -239,16 +370,23 @@
             let subtotal = item.harga * item.qty;
             total += subtotal;
             qty += item.qty;
+            const safeKey = key.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
             
             html += `
                 <div class="cart-item">
-                    <div>
+                    <div class="cart-main">
                         <strong>${item.nama}</strong>
-                        <small>Rp ${item.harga.toLocaleString('id-ID')} x ${item.qty}</small>
+                        <small>Rp ${item.harga.toLocaleString('id-ID')} · stok ${item.stok}</small>
+                        <div class="qty-control">
+                            <button class="qty-btn" type="button" onclick="kurangiQtyCheckout('${safeKey}')">−</button>
+                            <input class="qty-input" type="number" min="1" max="${item.stok}" value="${item.qty}" onchange="ubahQtyCheckout('${safeKey}', this.value)">
+                            <button class="qty-btn" type="button" onclick="tambahQtyCheckout('${safeKey}')">+</button>
+                            <button class="qty-max" type="button" onclick="setQtyMaxCheckout('${safeKey}')">MAX</button>
+                        </div>
                     </div>
                     <div class="cart-right">
                         <span class="cart-subtotal">Rp ${subtotal.toLocaleString('id-ID')}</span>
-                        <button class="btn-remove" onclick="hapusItem('${key}')">-</button>
+                        <button class="btn-remove-item" type="button" onclick="hapusSemuaItem('${safeKey}')" title="Hapus item">×</button>
                     </div>
                 </div>
             `;
@@ -269,7 +407,8 @@
     // ==========================================
     function prosesPembayaran() {
         if (Object.keys(keranjang).length === 0) {
-            return alert("Pilih menu terlebih dahulu!");
+            showAppAlert({ title: 'Keranjang Masih Kosong', message: 'Pilih minimal satu menu sebelum memproses pembayaran.' });
+            return;
         }
 
         // Siapkan data items untuk dikirim ke server
@@ -289,6 +428,10 @@
         });
 
         // Kirim ke server via fetch
+        const prosesButton = document.querySelector('.btn-proses');
+        prosesButton.disabled = true;
+        prosesButton.innerText = 'MEMPROSES...';
+
         fetch('<?= base_url("admin/transaksi/simpan") ?>', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -297,7 +440,13 @@
                 total_amount: total
             })
         })
-        .then(res => res.json())
+        .then(async res => {
+            const data = await res.json().catch(() => ({ status: 'error', message: 'Respons server tidak valid.' }));
+            if (!res.ok && data.status !== 'success') {
+                return data;
+            }
+            return data;
+        })
         .then(data => {
             if (data.status === 'success') {
                 // Tampilkan struk
@@ -314,15 +463,51 @@
                 document.getElementById('struk-items').innerHTML = htmlStruk;
                 document.getElementById('struk-total').innerText = 'Rp ' + total.toLocaleString('id-ID');
                 document.getElementById('modal-struk').style.display = 'flex';
+                prosesButton.disabled = false;
+                prosesButton.innerText = 'PROSES PEMBAYARAN';
             } else {
-                alert('Gagal menyimpan transaksi: ' + (data.message || 'Unknown error'));
+                showAppAlert({
+                    title: data.code === 'INSUFFICIENT_STOCK' ? 'Stok Tidak Cukup' : 'Transaksi Gagal',
+                    message: data.message || 'Transaksi tidak dapat disimpan.',
+                    detail: data.code === 'INSUFFICIENT_STOCK'
+                        ? `Menu: ${data.menu_name || '-'}<br>Stok tersedia: ${data.available_stock ?? '-'}<br>Jumlah diminta: ${data.requested_qty ?? '-'}`
+                        : ''
+                });
+                prosesButton.disabled = false;
+                prosesButton.innerText = 'PROSES PEMBAYARAN';
             }
         })
         .catch(err => {
             console.error(err);
-            alert('Terjadi kesalahan koneksi ke server.');
+            showAppAlert({ title: 'Koneksi Bermasalah', message: 'Terjadi kesalahan koneksi ke server. Pastikan CodeIgniter dan database masih berjalan.' });
+            prosesButton.disabled = false;
+            prosesButton.innerText = 'PROSES PEMBAYARAN';
         });
     }
+
+    function showAppAlert({ title = 'Peringatan', message = 'Terjadi kesalahan.', detail = '' } = {}) {
+        document.getElementById('alertTitle').innerText = title;
+        document.getElementById('alertMessage').innerHTML = message;
+
+        const detailBox = document.getElementById('alertDetail');
+        if (detail) {
+            detailBox.innerHTML = detail;
+            detailBox.style.display = 'block';
+        } else {
+            detailBox.innerHTML = '';
+            detailBox.style.display = 'none';
+        }
+
+        document.getElementById('modal-alert').style.display = 'flex';
+    }
+
+    function closeAppAlert() {
+        document.getElementById('modal-alert').style.display = 'none';
+    }
+
+    document.getElementById('modal-alert').addEventListener('click', function(e) {
+        if (e.target === this) closeAppAlert();
+    });
 
     function selesaiTransaksi() {
         location.reload();

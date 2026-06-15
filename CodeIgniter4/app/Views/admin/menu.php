@@ -27,13 +27,17 @@
 
     .table-wrapper { background: white; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); overflow: hidden; }
     .table-scroll { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    table { width: 100%; border-collapse: collapse; min-width: 860px; }
     thead { background: #f8f9fa; }
     th { padding: 16px 20px; text-align: left; font-size: 13px; color: #636e72; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
     td { padding: 14px 20px; border-top: 1px solid #f1f2f6; font-size: 14px; color: #2d3436; vertical-align: middle; }
     tr:hover td { background: #fafafa; }
     .badge { display: inline-block; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
     .badge-kategori { background: #fff3e0; color: #e67e22; }
+    .stock-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 54px; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .2px; }
+    .stock-safe { background: #eafaf1; color: #1e8449; }
+    .stock-low { background: #fff4de; color: #b7791f; }
+    .stock-out { background: #ffe8e8; color: #c0392b; }
     .btn-action { 
         padding: 8px 14px; border-radius: 8px; border: none; 
         font-size: 12px; font-weight: 600; cursor: pointer; 
@@ -177,6 +181,7 @@
                         <th>Nama Item</th>
                         <th>Kategori</th>
                         <th>Harga</th>
+                        <th>Stok</th>
                         <th>Deskripsi</th>
                         <th>Aksi</th>
                     </tr>
@@ -195,6 +200,12 @@
                         <td><strong><?= $m['nama_item'] ?></strong></td>
                         <td><span class="badge badge-kategori"><?= $m['nama_kategori'] ?? 'Tanpa Kategori' ?></span></td>
                         <td>Rp <?= number_format($m['harga'], 0, ',', '.') ?></td>
+                        <?php
+                            $stokMenu = (int) ($m['stok'] ?? 0);
+                            $stockClass = $stokMenu <= 0 ? 'stock-out' : ($stokMenu <= 10 ? 'stock-low' : 'stock-safe');
+                            $stockText = $stokMenu <= 0 ? 'Habis' : $stokMenu;
+                        ?>
+                        <td><span class="stock-pill <?= $stockClass ?>"><?= $stockText ?></span></td>
                         <td><?= $m['m_description'] ?? '-' ?></td>
                         <td>
                             <button class="btn-action btn-edit" onclick='openEditModal(<?= json_encode($m, JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'><i class="fas fa-edit"></i> Edit</button>
@@ -238,6 +249,10 @@
             <div class="form-group">
                 <label>Harga (Rp)</label>
                 <input type="number" name="harga" id="inp_harga" placeholder="35000" min="0">
+            </div>
+            <div class="form-group">
+                <label>Stok</label>
+                <input type="number" name="stok" id="inp_stok" placeholder="100" min="0" step="1">
             </div>
             <div class="form-group">
                 <label>Deskripsi</label>
@@ -312,6 +327,7 @@
         document.getElementById('inp_nama').value = '';
         document.getElementById('inp_kategori').value = '';
         document.getElementById('inp_harga').value = '';
+        document.getElementById('inp_stok').value = '';
         document.getElementById('inp_deskripsi').value = '';
         document.getElementById('inp_gambar').value = '';
         document.getElementById('imgPreview').style.display = 'none';
@@ -326,6 +342,7 @@
         document.getElementById('inp_nama').value = item.nama_item;
         document.getElementById('inp_kategori').value = item.kategori_id || '';
         document.getElementById('inp_harga').value = item.harga;
+        document.getElementById('inp_stok').value = item.stok ?? 0;
         document.getElementById('inp_deskripsi').value = item.m_description || '';
         document.getElementById('inp_gambar').value = '';
         document.getElementById('imgPreview').style.display = 'none';
@@ -394,6 +411,7 @@
         const nama = document.getElementById('inp_nama').value.trim();
         const kategori = document.getElementById('inp_kategori').value;
         const harga = document.getElementById('inp_harga').value.trim();
+        const stok = document.getElementById('inp_stok').value.trim();
         const deskripsi = document.getElementById('inp_deskripsi').value.trim();
         const gambar = document.getElementById('inp_gambar');
         const isEdit = document.getElementById('isEditMode').value === '1';
@@ -402,6 +420,9 @@
         if (!nama) { alert('Bagian Nama Item wajib untuk diisi'); return false; }
         if (!kategori) { alert('Bagian Kategori wajib untuk diisi'); return false; }
         if (!harga) { alert('Bagian Harga wajib untuk diisi'); return false; }
+        if (Number(harga) < 0) { alert('Harga tidak boleh bernilai negatif'); return false; }
+        if (stok === '') { alert('Bagian Stok wajib untuk diisi'); return false; }
+        if (!Number.isInteger(Number(stok)) || Number(stok) < 0) { alert('Stok harus berupa bilangan bulat dan tidak boleh negatif'); return false; }
         if (!deskripsi) { alert('Bagian Deskripsi wajib untuk diisi'); return false; }
 
         // Gambar wajib saat tambah baru, opsional saat edit
