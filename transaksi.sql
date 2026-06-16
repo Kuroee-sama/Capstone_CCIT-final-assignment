@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 16 Jun 2026 pada 10.21
+-- Waktu pembuatan: 16 Jun 2026 pada 14.04
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -251,7 +251,8 @@ INSERT INTO `transaksi` (`transaksi_id`, `karyawan_id`, `tgl_transaksi`, `total_
 ALTER TABLE `detail_transaksi`
   ADD PRIMARY KEY (`detail_id`),
   ADD KEY `transaksi_id` (`transaksi_id`),
-  ADD KEY `menu_id` (`menu_id`);
+  ADD KEY `menu_id` (`menu_id`),
+  ADD KEY `idx_detail_transaksi_menu_id` (`menu_id`);
 
 --
 -- Indeks untuk tabel `karyawan`
@@ -331,7 +332,8 @@ ALTER TABLE `transaksi`
 -- Ketidakleluasaan untuk tabel `detail_transaksi`
 --
 ALTER TABLE `detail_transaksi`
-  ADD CONSTRAINT `FKhwnk6dulhm64kyttixa7rqpya` FOREIGN KEY (`transaksi_id`) REFERENCES `transaksi` (`transaksi_id`);
+  ADD CONSTRAINT `FKhwnk6dulhm64kyttixa7rqpya` FOREIGN KEY (`transaksi_id`) REFERENCES `transaksi` (`transaksi_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_detail_transaksi_menu` FOREIGN KEY (`menu_id`) REFERENCES `menu` (`menu_id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Ketidakleluasaan untuk tabel `menu`

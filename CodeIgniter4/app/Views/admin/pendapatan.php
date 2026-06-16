@@ -8,22 +8,23 @@
     .pendapatan-header a { text-decoration: none; color: #e67e22; font-weight: 600; }
 
     .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .stat-card { 
-        background: white; padding: 22px; border-radius: 16px; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 15px; 
+    .stat-card {
+        background: white; padding: 22px; border-radius: 16px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.04); display: flex; align-items: center; gap: 15px;
     }
-    .stat-icon { 
-        width: 50px; height: 50px; border-radius: 12px; 
+    .stat-icon {
+        width: 50px; height: 50px; border-radius: 12px;
         display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
     }
     .stat-label { font-size: 12px; color: #636e72; margin-bottom: 2px; }
     .stat-value { font-size: 20px; font-weight: 700; color: #2d3436; }
 
-    .chart-wrapper { 
-        background: white; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); 
-        padding: 25px; margin-bottom: 30px; 
+    .chart-wrapper {
+        background: white; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+        padding: 25px; margin-bottom: 30px;
     }
-    .chart-wrapper h3 { margin: 0 0 20px; color: #2d3436; }
+    .chart-wrapper h3 { margin: 0 0 8px; color: #2d3436; }
+    .chart-note { margin: 0 0 20px; color: #636e72; font-size: 13px; }
     .chart-container { position: relative; height: 350px; width: 100%; }
 
     .table-wrapper { background: white; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); overflow: hidden; }
@@ -39,7 +40,7 @@
     .empty-state { text-align: center; padding: 60px 20px; color: #b2bec3; }
 
     @media (max-width: 600px) {
-        .chart-container { height: 250px; }
+        .chart-container { height: 280px; }
         th, td { padding: 12px 14px; font-size: 13px; }
     }
 </style>
@@ -58,14 +59,14 @@
             <div class="stat-icon" style="background: #fff3e0; color: #e67e22;"><i class="fas fa-money-bill-wave"></i></div>
             <div>
                 <div class="stat-label">Total Pendapatan Keseluruhan</div>
-                <div class="stat-value">Rp <?= number_format($totalAll, 0, ',', '.') ?></div>
+                <div class="stat-value">Rp <?= number_format((float) $totalAll, 0, ',', '.') ?></div>
             </div>
         </div>
         <div class="stat-card">
             <div class="stat-icon" style="background: #e3f2fd; color: #3498db;"><i class="fas fa-receipt"></i></div>
             <div>
                 <div class="stat-label">Total Transaksi</div>
-                <div class="stat-value"><?= $totalTransaksi ?></div>
+                <div class="stat-value"><?= (int) $totalTransaksi ?></div>
             </div>
         </div>
         <div class="stat-card">
@@ -80,6 +81,7 @@
     <?php if (!empty($pendapatan)): ?>
     <div class="chart-wrapper">
         <h3>Grafik Pendapatan Bulanan</h3>
+        <p class="chart-note">Batang menunjukkan total pendapatan. Garis menunjukkan rata-rata pendapatan per transaksi. Keduanya memakai satuan Rupiah agar grafik lebih konsisten.</p>
         <div class="chart-container">
             <canvas id="chartPendapatan"></canvas>
         </div>
@@ -102,10 +104,10 @@
                     <?php foreach ($pendapatan as $i => $p): ?>
                     <tr>
                         <td><?= $i + 1 ?></td>
-                        <td><strong><?= $namaBulan[(int)$p['bulan']] ?> <?= $p['tahun'] ?></strong></td>
-                        <td><?= $p['jumlah_transaksi'] ?> transaksi</td>
-                        <td class="amount-cell">Rp <?= number_format($p['total_pendapatan'], 0, ',', '.') ?></td>
-                        <td>Rp <?= number_format($p['total_pendapatan'] / $p['jumlah_transaksi'], 0, ',', '.') ?></td>
+                        <td><strong><?= esc($namaBulan[(int) $p['bulan']] ?? '-') ?> <?= esc($p['tahun']) ?></strong></td>
+                        <td><?= (int) $p['jumlah_transaksi'] ?> transaksi</td>
+                        <td class="amount-cell">Rp <?= number_format((float) $p['total_pendapatan'], 0, ',', '.') ?></td>
+                        <td>Rp <?= number_format((float) $p['rata_rata_transaksi'], 0, ',', '.') ?></td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -126,57 +128,77 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 <?php if (!empty($pendapatan)): ?>
-    // Siapkan data (urutan kronologis: balik array karena query DESC)
-    const dataReversed = <?= json_encode(array_reverse($pendapatan)) ?>;
+    const dataReversed = <?= json_encode(array_reverse($pendapatan), JSON_NUMERIC_CHECK) ?>;
     const namaBulan = <?= json_encode($namaBulan) ?>;
-    
-    const labels = dataReversed.map(d => namaBulan[parseInt(d.bulan)] + ' ' + d.tahun);
-    const values = dataReversed.map(d => parseFloat(d.total_pendapatan));
-    const counts = dataReversed.map(d => parseInt(d.jumlah_transaksi));
+
+    const formatRupiah = (value) => 'Rp ' + Number(value || 0).toLocaleString('id-ID');
+
+    const labels = dataReversed.map((item) => namaBulan[parseInt(item.bulan)] + ' ' + item.tahun);
+    const totalPendapatan = dataReversed.map((item) => Number(item.total_pendapatan || 0));
+    const rataRataTransaksi = dataReversed.map((item) => Number(item.rata_rata_transaksi || 0));
+    const jumlahTransaksi = dataReversed.map((item) => Number(item.jumlah_transaksi || 0));
 
     const ctx = document.getElementById('chartPendapatan').getContext('2d');
+
     new Chart(ctx, {
-        type: 'bar',
         data: {
             labels: labels,
             datasets: [
                 {
-                    label: 'Total Pendapatan (Rp)',
-                    data: values,
-                    backgroundColor: 'rgba(230, 126, 34, 0.7)',
+                    type: 'bar',
+                    label: 'Total Pendapatan',
+                    data: totalPendapatan,
+                    backgroundColor: 'rgba(230, 126, 34, 0.65)',
                     borderColor: '#e67e22',
                     borderWidth: 2,
                     borderRadius: 8,
-                    order: 1
+                    order: 2
                 },
                 {
-                    label: 'Jumlah Transaksi',
-                    data: counts,
                     type: 'line',
+                    label: 'Rata-rata / Transaksi',
+                    data: rataRataTransaksi,
                     borderColor: '#3498db',
-                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                    fill: true,
-                    tension: 0.4,
-                    yAxisID: 'y1',
+                    backgroundColor: 'rgba(52, 152, 219, 0.10)',
                     pointBackgroundColor: '#3498db',
+                    pointBorderColor: '#3498db',
                     pointRadius: 5,
-                    order: 0
+                    pointHoverRadius: 7,
+                    borderWidth: 3,
+                    tension: 0.35,
+                    fill: false,
+                    order: 1
                 }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: { intersect: false, mode: 'index' },
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
             plugins: {
-                legend: { position: 'top', labels: { usePointStyle: true, padding: 20 } },
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20
+                    }
+                },
                 tooltip: {
                     callbacks: {
-                        label: function(ctx) {
-                            if (ctx.dataset.label.includes('Pendapatan')) {
-                                return 'Pendapatan: Rp ' + ctx.parsed.y.toLocaleString('id-ID');
+                        afterBody: function(items) {
+                            if (!items.length) return '';
+                            const index = items[0].dataIndex;
+                            return 'Jumlah transaksi: ' + jumlahTransaksi[index] + ' transaksi';
+                        },
+                        label: function(context) {
+                            if (context.dataset.label === 'Total Pendapatan') {
+                                return 'Total Pendapatan: ' + formatRupiah(context.raw);
                             }
-                            return 'Transaksi: ' + ctx.parsed.y;
+
+                            return 'Rata-rata / Transaksi: ' + formatRupiah(context.raw);
                         }
                     }
                 }
@@ -185,17 +207,19 @@
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        callback: function(val) { return 'Rp ' + (val / 1000).toFixed(0) + 'K'; }
+                        callback: function(value) {
+                            return formatRupiah(value);
+                        }
                     },
-                    grid: { color: '#f1f2f6' }
+                    grid: {
+                        color: '#f1f2f6'
+                    }
                 },
-                y1: {
-                    beginAtZero: true,
-                    position: 'right',
-                    ticks: { stepSize: 1 },
-                    grid: { display: false }
-                },
-                x: { grid: { display: false } }
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
             }
         }
     });

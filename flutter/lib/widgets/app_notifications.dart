@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 enum AppNoticeType { success, error, warning, info }
@@ -8,6 +9,9 @@ class AppNotifier {
   static const Color _warning = Color(0xFFE67E22);
   static const Color _info = Color(0xFF2196F3);
   static const Color _dark = Color(0xFF2D3436);
+
+  static OverlayEntry? _activeToast;
+  static Timer? _activeTimer;
 
   static void success(BuildContext context, String message, {String title = 'Berhasil'}) {
     _show(context, message, title: title, type: AppNoticeType.success);
@@ -35,6 +39,7 @@ class AppNotifier {
   }) async {
     final result = await showDialog<bool>(
       context: context,
+      useRootNavigator: true,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 10),
@@ -101,6 +106,69 @@ class AppNotifier {
     required AppNoticeType type,
   }) {
     if (!context.mounted) return;
+
+    final overlay = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlay == null) {
+      _showSnackBarFallback(context, message, title: title, type: type);
+      return;
+    }
+
+    _activeTimer?.cancel();
+    _activeToast?.remove();
+    _activeToast = null;
+
+    final color = _color(type);
+    final bg = _background(type);
+    final icon = _icon(type);
+
+    final entry = OverlayEntry(
+      builder: (overlayContext) => Positioned(
+        top: 14,
+        left: 16,
+        right: 16,
+        child: SafeArea(
+          child: IgnorePointer(
+            ignoring: false,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Material(
+                  color: Colors.transparent,
+                  child: _ToastCard(
+                    title: title,
+                    message: message,
+                    color: color,
+                    bg: bg,
+                    icon: icon,
+                    onClose: _dismissToast,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    _activeToast = entry;
+    overlay.insert(entry);
+    _activeTimer = Timer(const Duration(milliseconds: 3600), _dismissToast);
+  }
+
+  static void _dismissToast() {
+    _activeTimer?.cancel();
+    _activeTimer = null;
+    _activeToast?.remove();
+    _activeToast = null;
+  }
+
+  static void _showSnackBarFallback(
+    BuildContext context,
+    String message, {
+    required String title,
+    required AppNoticeType type,
+  }) {
+    if (!context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     final color = _color(type);
@@ -114,37 +182,13 @@ class AppNotifier {
         backgroundColor: Colors.transparent,
         margin: const EdgeInsets.all(16),
         duration: const Duration(milliseconds: 3600),
-        content: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFF1F2F6)),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .12), blurRadius: 28, offset: const Offset(0, 10))],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
-                child: Icon(icon, color: color, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(color: _dark, fontWeight: FontWeight.w800, fontSize: 14)),
-                    const SizedBox(height: 3),
-                    Text(message, style: const TextStyle(color: Color(0xFF636E72), height: 1.35, fontSize: 13)),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        content: _ToastCard(
+          title: title,
+          message: message,
+          color: color,
+          bg: bg,
+          icon: icon,
+          onClose: messenger.hideCurrentSnackBar,
         ),
       ),
     );
@@ -190,4 +234,69 @@ class AppNotifier {
   }
 
   static String _clean(Object error) => error.toString().replaceAll('Exception: ', '').trim();
+}
+
+class _ToastCard extends StatelessWidget {
+  final String title;
+  final String message;
+  final Color color;
+  final Color bg;
+  final IconData icon;
+  final VoidCallback onClose;
+
+  const _ToastCard({
+    required this.title,
+    required this.message,
+    required this.color,
+    required this.bg,
+    required this.icon,
+    required this.onClose,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFF1F2F6)),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .16), blurRadius: 30, offset: const Offset(0, 12))],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: color, size: 23),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(color: AppNotifier._dark, fontWeight: FontWeight.w800, fontSize: 14)),
+                  const SizedBox(height: 3),
+                  Text(message, style: const TextStyle(color: Color(0xFF636E72), height: 1.35, fontSize: 13)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: onClose,
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.close_rounded, size: 18, color: Color(0xFFB2BEC3)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
