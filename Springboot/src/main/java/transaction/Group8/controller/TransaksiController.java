@@ -204,8 +204,7 @@ public class TransaksiController {
             }
         }
 
-        List<DetailTransaksi> details = transaksiService.getDetailTransaksi(id);
-        return ResponseEntity.ok(details);
+        return ResponseEntity.ok(transaksiService.getDetailTransaksiView(id));
     }
 
     // POST - Add detail to existing transaction (ADMIN only)

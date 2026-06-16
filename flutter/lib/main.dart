@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'screens/login_page.dart';
 import 'screens/dashboard_page.dart';
 import 'services/auth_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('id_ID', null);
   runApp(const CafeinajaApp());
 }
 
@@ -20,7 +23,7 @@ class CafeinajaApp extends StatelessWidget {
           seedColor: const Color(0xFFE67E22),
           brightness: Brightness.light,
         ),
-        fontFamily: 'Roboto',
+        fontFamily: 'Inter',
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
           centerTitle: true,

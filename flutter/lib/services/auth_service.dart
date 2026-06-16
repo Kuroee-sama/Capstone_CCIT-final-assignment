@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,30 +15,43 @@ class AuthService {
 
   /// Login dan simpan token
   static Future<AuthResponse> login(String username, String password) async {
-    final response = await http.post(
-      Uri.parse(ApiConfig.login),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': username, 'password': password}),
-    );
+    try {
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.login),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'username': username, 'password': password}),
+          )
+          .timeout(ApiConfig.requestTimeout);
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final authResponse = AuthResponse.fromJson(data);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final authResponse = AuthResponse.fromJson(data);
 
-      // Simpan token dan user info ke SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_tokenKey, authResponse.token);
-      if (authResponse.karyawan != null) {
-        await prefs.setString(_roleKey, authResponse.karyawan!.role);
-        await prefs.setInt(_userIdKey, authResponse.karyawan!.karyawanId);
-        await prefs.setString(_usernameKey, authResponse.karyawan!.username);
-        await prefs.setString(_userKey, jsonEncode(data['karyawan']));
+        if (authResponse.token.isEmpty) {
+          throw Exception('Token tidak ditemukan pada response backend');
+        }
+
+        // Simpan token dan user info ke SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_tokenKey, authResponse.token);
+        if (authResponse.karyawan != null) {
+          await prefs.setString(_roleKey, authResponse.karyawan!.role);
+          await prefs.setInt(_userIdKey, authResponse.karyawan!.karyawanId);
+          await prefs.setString(_usernameKey, authResponse.karyawan!.username);
+          await prefs.setString(_userKey, jsonEncode(data['karyawan']));
+        }
+
+        return authResponse;
       }
 
-      return authResponse;
-    } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['error'] ?? 'Login gagal');
+      throw Exception(_extractErrorMessage(response.body, 'Login gagal'));
+    } on TimeoutException {
+      throw Exception('Koneksi ke backend timeout. Pastikan Spring Boot berjalan di ${ApiConfig.baseUrl}.');
+    } on FormatException {
+      throw Exception('Response backend bukan JSON yang valid. Periksa log Spring Boot.');
+    } on http.ClientException catch (e) {
+      throw Exception(_networkErrorMessage(e));
     }
   }
 
@@ -59,30 +73,43 @@ class AuthService {
     if (alamat != null) body['alamat'] = alamat;
     if (noTelp != null) body['noTelp'] = noTelp;
 
-    final response = await http.post(
-      Uri.parse(ApiConfig.register),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    );
+    try {
+      final response = await http
+          .post(
+            Uri.parse(ApiConfig.register),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(ApiConfig.requestTimeout);
 
-    if (response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-      final authResponse = AuthResponse.fromJson(data);
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final authResponse = AuthResponse.fromJson(data);
 
-      // Simpan token
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_tokenKey, authResponse.token);
-      if (authResponse.karyawan != null) {
-        await prefs.setString(_roleKey, authResponse.karyawan!.role);
-        await prefs.setInt(_userIdKey, authResponse.karyawan!.karyawanId);
-        await prefs.setString(_usernameKey, authResponse.karyawan!.username);
-        await prefs.setString(_userKey, jsonEncode(data['karyawan']));
+        if (authResponse.token.isEmpty) {
+          throw Exception('Token tidak ditemukan pada response backend');
+        }
+
+        // Simpan token
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_tokenKey, authResponse.token);
+        if (authResponse.karyawan != null) {
+          await prefs.setString(_roleKey, authResponse.karyawan!.role);
+          await prefs.setInt(_userIdKey, authResponse.karyawan!.karyawanId);
+          await prefs.setString(_usernameKey, authResponse.karyawan!.username);
+          await prefs.setString(_userKey, jsonEncode(data['karyawan']));
+        }
+
+        return authResponse;
       }
 
-      return authResponse;
-    } else {
-      final error = jsonDecode(response.body);
-      throw Exception(error['error'] ?? 'Registrasi gagal');
+      throw Exception(_extractErrorMessage(response.body, 'Registrasi gagal'));
+    } on TimeoutException {
+      throw Exception('Koneksi ke backend timeout. Pastikan Spring Boot berjalan di ${ApiConfig.baseUrl}.');
+    } on FormatException {
+      throw Exception('Response backend bukan JSON yang valid. Periksa log Spring Boot.');
+    } on http.ClientException catch (e) {
+      throw Exception(_networkErrorMessage(e));
     }
   }
 
@@ -137,7 +164,28 @@ class AuthService {
     final token = await getToken();
     return {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
+  }
+
+  static String _extractErrorMessage(String body, String fallback) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        final error = decoded['error'] ?? decoded['message'];
+        if (error is String && error.isNotEmpty) return error;
+      }
+    } catch (_) {
+      // Ignore non-JSON error body.
+    }
+    return fallback;
+  }
+
+  static String _networkErrorMessage(http.ClientException e) {
+    final target = ApiConfig.baseUrl;
+    if (e.message.toLowerCase().contains('failed to fetch')) {
+      return 'Tidak bisa menghubungi backend di $target. Untuk Flutter Web gunakan localhost, bukan 10.0.2.2. Jalankan Spring Boot di port 8080 lalu coba lagi.';
+    }
+    return 'Tidak bisa menghubungi backend di $target. Detail: ${e.message}';
   }
 }

@@ -39,6 +39,7 @@ public class Transaksi {
     private BigDecimal kembalian;
 
     @OneToMany(mappedBy = "transaksi", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<DetailTransaksi> detailList;
 
     // Transient field for karyawan username in response

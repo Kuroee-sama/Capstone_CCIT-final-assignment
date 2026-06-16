@@ -5,6 +5,8 @@ class DetailTransaksiModel {
   final int? transaksiId;
   final int? menuId;
   final MenuModel? menu;
+  final String? namaItemValue;
+  final String? namaKategoriValue;
   final int jumlah;
   final double harga;
   final double totalHarga;
@@ -14,6 +16,8 @@ class DetailTransaksiModel {
     this.transaksiId,
     this.menuId,
     this.menu,
+    this.namaItemValue,
+    this.namaKategoriValue,
     required this.jumlah,
     required this.harga,
     required this.totalHarga,
@@ -24,14 +28,30 @@ class DetailTransaksiModel {
       detailId: json['detailId'] ?? json['detail_id'],
       transaksiId: json['transaksiId'] ?? json['transaksi_id'],
       menuId: json['menuId'] ?? json['menu_id'],
-      menu: json['menu'] != null ? MenuModel.fromJson(json['menu']) : null,
-      jumlah: json['jumlah'] ?? 0,
-      harga: (json['harga'] ?? 0).toDouble(),
-      totalHarga: (json['totalHarga'] ?? json['total_harga'] ?? 0).toDouble(),
+      menu: json['menu'] != null ? MenuModel.fromJson(Map<String, dynamic>.from(json['menu'] as Map)) : null,
+      namaItemValue: json['namaItem'] ?? json['nama_item'],
+      namaKategoriValue: json['namaKategori'] ?? json['nama_kategori'],
+      jumlah: _asInt(json['jumlah']),
+      harga: _asDouble(json['harga']),
+      totalHarga: _asDouble(json['totalHarga'] ?? json['total_harga']),
     );
   }
 
-  String get namaItem => menu?.namaItem ?? 'Item #$menuId';
+  String get namaItem => namaItemValue ?? menu?.namaItem ?? 'Item #$menuId';
+  String get namaKategori => namaKategoriValue ?? menu?.kategoriNama ?? '-';
+
+  static int _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static double _asDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
 }
 
 class TransaksiModel {
@@ -59,24 +79,57 @@ class TransaksiModel {
 
   factory TransaksiModel.fromJson(Map<String, dynamic> json) {
     List<DetailTransaksiModel>? details;
-    if (json['detailList'] != null) {
-      details = (json['detailList'] as List)
-          .map((d) => DetailTransaksiModel.fromJson(d))
+    final rawDetails = json['detailList'] ?? json['detail_list'] ?? json['details'] ?? json['detail'];
+    if (rawDetails is List) {
+      details = rawDetails
+          .map((d) => DetailTransaksiModel.fromJson(Map<String, dynamic>.from(d as Map)))
           .toList();
     }
 
     return TransaksiModel(
-      transaksiId: json['transaksiId'] ?? json['transaksi_id'] ?? 0,
-      karyawanId: json['karyawanId'] ?? json['karyawan_id'],
-      karyawanUsername: json['karyawanUsername'] ?? json['karyawan_username'],
-      tglTransaksi: json['tglTransaksi'] != null
-          ? DateTime.parse(json['tglTransaksi'])
-          : DateTime.now(),
-      totalAmount: (json['totalAmount'] ?? json['total_amount'] ?? 0).toDouble(),
+      transaksiId: _asInt(json['transaksiId'] ?? json['transaksi_id']),
+      karyawanId: _asNullableInt(json['karyawanId'] ?? json['karyawan_id']),
+      karyawanUsername: json['karyawanUsername'] ?? json['karyawan_username'] ?? json['username'],
+      tglTransaksi: _asDateTime(json['tglTransaksi'] ?? json['tgl_transaksi']),
+      totalAmount: _asDouble(json['totalAmount'] ?? json['total_amount']),
       metodePembayaran: json['metodePembayaran'] ?? json['metode_pembayaran'],
-      bayar: json['bayar'] != null ? (json['bayar']).toDouble() : null,
-      kembalian: json['kembalian'] != null ? (json['kembalian']).toDouble() : null,
+      bayar: _asNullableDouble(json['bayar']),
+      kembalian: _asNullableDouble(json['kembalian']),
       detailList: details,
     );
+  }
+
+  static int _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static int? _asNullableInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
+  }
+
+  static double _asDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static double? _asNullableDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString());
+  }
+
+  static DateTime _asDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+    final raw = value.toString();
+    return DateTime.tryParse(raw) ?? DateTime.now();
   }
 }

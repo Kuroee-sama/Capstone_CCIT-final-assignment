@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import transaction.Group8.model.Transaksi;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Repository
 public interface TransaksiRepository extends JpaRepository<Transaksi, Integer> {
@@ -17,4 +18,16 @@ public interface TransaksiRepository extends JpaRepository<Transaksi, Integer> {
 
     @Query("SELECT COALESCE(SUM(t.totalAmount), 0) FROM Transaksi t")
     BigDecimal sumTotalAmount();
+
+    @Query(value = """
+            SELECT
+                YEAR(tgl_transaksi) AS tahun,
+                MONTH(tgl_transaksi) AS bulan,
+                COUNT(*) AS jumlah_transaksi,
+                COALESCE(SUM(total_amount), 0) AS total_pendapatan
+            FROM transaksi
+            GROUP BY YEAR(tgl_transaksi), MONTH(tgl_transaksi)
+            ORDER BY tahun DESC, bulan DESC
+            """, nativeQuery = true)
+    List<Object[]> getMonthlyIncome();
 }

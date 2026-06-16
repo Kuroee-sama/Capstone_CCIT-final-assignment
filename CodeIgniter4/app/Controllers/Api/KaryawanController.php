@@ -2,7 +2,6 @@
 
 namespace App\Controllers\Api;
 
-use App\Models\Karyawan;
 use CodeIgniter\RESTful\ResourceController;
 
 class KaryawanController extends ResourceController
@@ -12,7 +11,8 @@ class KaryawanController extends ResourceController
 
     public function index()
     {
-        return $this->respond($this->model->findAll());
+        $rows = $this->model->findAll();
+        return $this->respond(array_map([$this, 'withoutPassword'], $rows));
     }
 
     public function show($id = null)
@@ -21,30 +21,28 @@ class KaryawanController extends ResourceController
         if (!$data) {
             return $this->failNotFound('Karyawan not found');
         }
-        return $this->respond($data);
+        return $this->respond($this->withoutPassword($data));
     }
 
     public function create()
     {
+        $data = $this->normalize($this->payload());
         $rules = [
-            'username' => 'required|is_unique[karyawan.username]',
+            'username' => 'required|min_length[3]|is_unique[karyawan.username]',
             'email'    => 'required|valid_email|is_unique[karyawan.email]',
-            'password' => 'required|min_length(6)',
-            'role'     => 'required|in_list[ADMIN,KARYAWAN]'
+            'password' => 'required|min_length[6]',
+            'role'     => 'permit_empty|in_list[ADMIN,KARYAWAN]',
         ];
 
-        if (!$this->validate($rules)) {
+        if (!$this->validateData($data, $rules)) {
             return $this->fail($this->validator->getErrors());
         }
 
-        $data = $this->request->getPost();
-        // Hash password sebelum insert
-        if (isset($data['password'])) {
-            $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
-        }
+        $data['role'] = $data['role'] ?? 'KARYAWAN';
+        $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
 
         if ($this->model->insert($data)) {
-            return $this->respondCreated(['id' => $this->model->getInsertID(), 'message' => 'Karyawan created successfully']);
+            return $this->respondCreated($this->withoutPassword($this->model->find($this->model->getInsertID())));
         }
 
         return $this->failServerError('Failed to create karyawan');
@@ -52,23 +50,22 @@ class KaryawanController extends ResourceController
 
     public function createBulk()
     {
-        $data = $this->request->getVar();
-        if (!is_array($data)) {
+        $payload = $this->request->getJSON(true) ?: $this->request->getVar();
+        if (!is_array($payload)) {
             return $this->fail('Invalid data format. Expected array of objects.');
         }
 
         $insertedIds = [];
-        foreach ($data as $row) {
-             if (empty($row->email) || empty($row->username)) continue;
-
-             $rowData = (array)$row;
-             if (isset($rowData['password'])) {
-                 $rowData['password'] = password_hash($rowData['password'], PASSWORD_BCRYPT);
-             }
-
-             if ($this->model->insert($rowData)) {
-                 $insertedIds[] = $this->model->getInsertID();
-             }
+        foreach ($payload as $row) {
+            $data = $this->normalize((array) $row);
+            if (empty($data['email']) || empty($data['username']) || empty($data['password'])) {
+                continue;
+            }
+            $data['role'] = $data['role'] ?? 'KARYAWAN';
+            $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
+            if ($this->model->insert($data)) {
+                $insertedIds[] = $this->model->getInsertID();
+            }
         }
 
         return $this->respondCreated(['message' => count($insertedIds) . ' karyawan created', 'ids' => $insertedIds]);
@@ -76,13 +73,17 @@ class KaryawanController extends ResourceController
 
     public function update($id = null)
     {
-        $data = $this->request->getRawInput();
-        // Hash password jika diupdate
-        if (isset($data['password'])) {
+        if (!$this->model->find($id)) {
+            return $this->failNotFound('Karyawan not found');
+        }
+        $data = $this->normalize($this->payload());
+        if (isset($data['password']) && $data['password'] !== '') {
             $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);
+        } else {
+            unset($data['password']);
         }
         $this->model->update($id, $data);
-        return $this->respond(['message' => 'Karyawan updated successfully']);
+        return $this->respond($this->withoutPassword($this->model->find($id)));
     }
 
     public function delete($id = null)
@@ -95,9 +96,10 @@ class KaryawanController extends ResourceController
 
     public function deleteBulk()
     {
-        $ids = $this->request->getVar('ids');
+        $payload = $this->request->getJSON(true) ?: $this->request->getVar();
+        $ids = $payload['ids'] ?? null;
         if (!is_array($ids)) {
-             return $this->fail('Invalid data format. Expected array of IDs.');
+            return $this->fail('Invalid data format. Expected array of IDs.');
         }
 
         $deleted = 0;
@@ -106,7 +108,36 @@ class KaryawanController extends ResourceController
                 $deleted++;
             }
         }
-        
+
         return $this->respondDeleted(['message' => $deleted . ' karyawan deleted']);
+    }
+
+    private function payload(): array
+    {
+        $json = $this->request->getJSON(true);
+        if (is_array($json)) {
+            return $json;
+        }
+        $raw = $this->request->getRawInput();
+        return $raw ?: ($this->request->getPost() ?: []);
+    }
+
+    private function normalize(array $data): array
+    {
+        if (isset($data['tglLahir'])) {
+            $data['tgl_lahir'] = $data['tglLahir'];
+            unset($data['tglLahir']);
+        }
+        if (isset($data['noTelp'])) {
+            $data['no_telp'] = $data['noTelp'];
+            unset($data['noTelp']);
+        }
+        return $data;
+    }
+
+    private function withoutPassword(array $row): array
+    {
+        unset($row['password']);
+        return $row;
     }
 }

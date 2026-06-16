@@ -51,9 +51,8 @@ public class AuthService {
         karyawan.setAlamat(request.getAlamat());
         karyawan.setTglLahir(request.getTglLahir());
         karyawan.setNoTelp(request.getNoTelp());
-        // Public registration always creates KARYAWAN role
-        // ADMIN accounts must be created by existing ADMINs only
-        karyawan.setRole(Role.KARYAWAN);
+        // Role is optional. If absent, default to KARYAWAN.
+        karyawan.setRole(request.getRole() != null ? request.getRole() : Role.KARYAWAN);
 
         Karyawan savedKaryawan = karyawanRepository.save(karyawan);
 

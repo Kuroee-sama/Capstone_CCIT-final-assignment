@@ -6,12 +6,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import transaction.Group8.model.Menu;
 import transaction.Group8.service.MenuService;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,8 +70,8 @@ public class MenuController {
         return ResponseEntity.ok(menuList);
     }
 
-    // POST - Create new menu (ADMIN only)
-    @PostMapping
+    // POST JSON - Create new menu (ADMIN only)
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createMenu(@RequestBody Menu menu) {
         try {
@@ -78,6 +81,31 @@ public class MenuController {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(error);
+        }
+    }
+
+    // POST multipart - Create new menu with image upload (ADMIN only)
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> createMenuMultipart(
+            @RequestParam String namaItem,
+            @RequestParam BigDecimal harga,
+            @RequestParam(defaultValue = "0") Integer stok,
+            @RequestParam Integer kategoriId,
+            @RequestParam(required = false) String mDescription,
+            @RequestParam(required = false) MultipartFile gambar) {
+        try {
+            Menu menu = buildMenu(namaItem, harga, stok, kategoriId, mDescription);
+            Menu createdMenu = menuService.createMenu(menu, gambar);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdMenu);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 
@@ -98,12 +126,38 @@ public class MenuController {
         }
     }
 
-    // PUT - Update menu (ADMIN only)
-    @PutMapping("/{id}")
+    // PUT JSON - Update menu (ADMIN only)
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateMenu(@PathVariable Integer id, @RequestBody Menu menu) {
         try {
             Menu updatedMenu = menuService.updateMenu(id, menu);
+            return ResponseEntity.ok(updatedMenu);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
+    }
+
+    // POST multipart - Update menu with image upload (ADMIN only)
+    @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateMenuMultipart(
+            @PathVariable Integer id,
+            @RequestParam String namaItem,
+            @RequestParam BigDecimal harga,
+            @RequestParam(defaultValue = "0") Integer stok,
+            @RequestParam Integer kategoriId,
+            @RequestParam(required = false) String mDescription,
+            @RequestParam(required = false) MultipartFile gambar) {
+        try {
+            Menu menu = buildMenu(namaItem, harga, stok, kategoriId, mDescription);
+            Menu updatedMenu = menuService.updateMenu(id, menu, gambar);
             return ResponseEntity.ok(updatedMenu);
         } catch (IllegalArgumentException e) {
             Map<String, String> error = new HashMap<>();
@@ -176,5 +230,15 @@ public class MenuController {
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
+    }
+
+    private Menu buildMenu(String namaItem, BigDecimal harga, Integer stok, Integer kategoriId, String mDescription) {
+        Menu menu = new Menu();
+        menu.setNamaItem(namaItem);
+        menu.setHarga(harga);
+        menu.setStok(stok);
+        menu.setKategoriId(kategoriId);
+        menu.setMDescription(mDescription);
+        return menu;
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Controllers\Api;
 
-use App\Models\Menu;
 use CodeIgniter\RESTful\ResourceController;
 
 class MenuController extends ResourceController
@@ -12,7 +11,14 @@ class MenuController extends ResourceController
 
     public function index()
     {
-        return $this->respond($this->model->findAll());
+        $db = \Config\Database::connect();
+        $data = $db->table('menu')
+            ->select('menu.*, kategori.nama_kategori, kategori.k_description')
+            ->join('kategori', 'kategori.kategori_id = menu.kategori_id', 'left')
+            ->get()
+            ->getResultArray();
+
+        return $this->respond($data);
     }
 
     public function show($id = null)
@@ -26,36 +32,15 @@ class MenuController extends ResourceController
 
     public function create()
     {
-        $rules = [
-            'nama_item' => 'required',
-            'harga'     => 'required|numeric',
-        ];
-
-        if (!$this->validate($rules)) {
-            return $this->fail($this->validator->getErrors());
+        $data = $this->normalize($this->payload());
+        if (empty($data['nama_item']) || !isset($data['harga'])) {
+            return $this->fail(['error' => 'namaItem/nama_item dan harga wajib diisi'], 400);
         }
 
-        $data = [
-            'nama_item' => $this->request->getVar('nama_item'),
-            'harga'     => $this->request->getVar('harga'),
-            'm_description' => $this->request->getVar('m_description') ?? null,
-            'gambar'    => $this->request->getVar('gambar') ?? null,
-        ];
+        $data['stok'] = $data['stok'] ?? 0;
 
         if ($this->model->insert($data)) {
-            $menuId = $this->model->getInsertID();
-
-            // Insert relasi kategori jika ada
-            $kategoriId = $this->request->getVar('kategori_id');
-            if ($kategoriId) {
-                $db = \Config\Database::connect();
-                $db->table('menu_kategori')->insert([
-                    'menu_id'     => $menuId,
-                    'kategori_id' => $kategoriId,
-                ]);
-            }
-
-            return $this->respondCreated(['id' => $menuId, 'message' => 'Menu created successfully']);
+            return $this->respondCreated($this->model->find($this->model->getInsertID()));
         }
 
         return $this->failServerError('Failed to create menu');
@@ -63,44 +48,35 @@ class MenuController extends ResourceController
 
     public function createBulk()
     {
-        $data = $this->request->getVar();
-        if (!is_array($data)) {
-             return $this->fail('Invalid data format. Expected array of objects.');
+        $payload = $this->request->getJSON(true) ?: $this->request->getVar();
+        if (!is_array($payload)) {
+            return $this->fail('Invalid data format. Expected array of objects.');
         }
 
         $insertedIds = [];
-        foreach ($data as $row) {
-             if (empty($row->nama_item) || empty($row->harga)) continue;
-
-             if ($this->model->insert((array)$row)) {
-                 $insertedIds[] = $this->model->getInsertID();
-             }
+        foreach ($payload as $row) {
+            $data = $this->normalize((array) $row);
+            if (empty($data['nama_item']) || !isset($data['harga'])) {
+                continue;
+            }
+            $data['stok'] = $data['stok'] ?? 0;
+            if ($this->model->insert($data)) {
+                $insertedIds[] = $this->model->getInsertID();
+            }
         }
 
         return $this->respondCreated(['message' => count($insertedIds) . ' menu items created', 'ids' => $insertedIds]);
     }
-    
+
     public function update($id = null)
     {
-        $data = $this->request->getRawInput();
-        
-        // Pisahkan kategori_id dari data menu
-        $kategoriId = $data['kategori_id'] ?? null;
-        unset($data['kategori_id']);
-        
-        $this->model->update($id, $data);
-
-        // Update relasi kategori jika ada
-        if ($kategoriId !== null) {
-            $db = \Config\Database::connect();
-            $db->table('menu_kategori')->where('menu_id', $id)->delete();
-            $db->table('menu_kategori')->insert([
-                'menu_id'     => $id,
-                'kategori_id' => $kategoriId,
-            ]);
+        if (!$this->model->find($id)) {
+            return $this->failNotFound('Menu item not found');
         }
 
-        return $this->respond(['message' => 'Menu updated successfully']);
+        $data = $this->normalize($this->payload());
+        $this->model->update($id, $data);
+        return $this->respond($this->model->find($id));
     }
 
     public function delete($id = null)
@@ -113,9 +89,10 @@ class MenuController extends ResourceController
 
     public function deleteBulk()
     {
-        $ids = $this->request->getVar('ids');
+        $payload = $this->request->getJSON(true) ?: $this->request->getVar();
+        $ids = $payload['ids'] ?? null;
         if (!is_array($ids)) {
-             return $this->fail('Invalid data format. Expected array of IDs.');
+            return $this->fail('Invalid data format. Expected array of IDs.');
         }
 
         $deleted = 0;
@@ -124,20 +101,40 @@ class MenuController extends ResourceController
                 $deleted++;
             }
         }
-        
+
         return $this->respondDeleted(['message' => $deleted . ' menu items deleted']);
     }
 
     public function findByKategori($kategoriId = null)
     {
-        $db = \Config\Database::connect();
-        $data = $db->table('menu')
-            ->select('menu.*')
-            ->join('menu_kategori', 'menu_kategori.menu_id = menu.menu_id')
-            ->where('menu_kategori.kategori_id', $kategoriId)
-            ->get()
-            ->getResultArray();
-        
-        return $this->respond($data);
+        return $this->respond($this->model->where('kategori_id', $kategoriId)->findAll());
+    }
+
+    private function payload(): array
+    {
+        $json = $this->request->getJSON(true);
+        if (is_array($json)) {
+            return $json;
+        }
+        $raw = $this->request->getRawInput();
+        return $raw ?: ($this->request->getPost() ?: []);
+    }
+
+    private function normalize(array $data): array
+    {
+        $map = [
+            'menuId' => 'menu_id',
+            'namaItem' => 'nama_item',
+            'mDescription' => 'm_description',
+            'kategoriId' => 'kategori_id',
+        ];
+        foreach ($map as $from => $to) {
+            if (array_key_exists($from, $data)) {
+                $data[$to] = $data[$from];
+                unset($data[$from]);
+            }
+        }
+        unset($data['kategori']);
+        return $data;
     }
 }

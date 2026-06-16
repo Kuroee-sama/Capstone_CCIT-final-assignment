@@ -73,6 +73,7 @@ class Filters extends BaseFilters
                     'admin/menu/*',
                     'admin/kategori/*',
                     'admin/riwayat/*',
+                    'api/*',
                 ],
             ],
         ],

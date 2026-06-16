@@ -3,6 +3,7 @@ package transaction.Group8.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import transaction.Group8.model.Karyawan;
@@ -19,6 +20,9 @@ public class KaryawanService {
 
     @Autowired
     private KaryawanRepository karyawanRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     // Get all karyawan with pagination
     public Page<Karyawan> getAllKaryawan(Pageable pageable) {
@@ -54,6 +58,9 @@ public class KaryawanService {
         if (karyawanRepository.findByUsername(karyawan.getUsername()).isPresent()) {
             throw new IllegalArgumentException("Username already exists: " + karyawan.getUsername());
         }
+        if (karyawan.getPassword() != null && !isBcryptHash(karyawan.getPassword())) {
+            karyawan.setPassword(passwordEncoder.encode(karyawan.getPassword()));
+        }
         return karyawanRepository.save(karyawan);
     }
 
@@ -84,6 +91,9 @@ public class KaryawanService {
             }
             if (karyawanRepository.findByUsername(karyawan.getUsername()).isPresent()) {
                 throw new IllegalArgumentException("Username already exists: " + karyawan.getUsername());
+            }
+            if (!isBcryptHash(karyawan.getPassword())) {
+                karyawan.setPassword(passwordEncoder.encode(karyawan.getPassword()));
             }
             createdKaryawan.add(karyawanRepository.save(karyawan));
         }
@@ -136,7 +146,9 @@ public class KaryawanService {
             karyawan.setEmail(karyawanDetails.getEmail());
         }
         if (karyawanDetails.getPassword() != null) {
-            karyawan.setPassword(karyawanDetails.getPassword());
+            karyawan.setPassword(isBcryptHash(karyawanDetails.getPassword())
+                    ? karyawanDetails.getPassword()
+                    : passwordEncoder.encode(karyawanDetails.getPassword()));
         }
         if (karyawanDetails.getUmur() != null) {
             karyawan.setUmur(karyawanDetails.getUmur());
@@ -150,8 +162,15 @@ public class KaryawanService {
         if (karyawanDetails.getNoTelp() != null) {
             karyawan.setNoTelp(karyawanDetails.getNoTelp());
         }
+        if (karyawanDetails.getRole() != null) {
+            karyawan.setRole(karyawanDetails.getRole());
+        }
 
         return karyawanRepository.save(karyawan);
+    }
+
+    private boolean isBcryptHash(String value) {
+        return value != null && value.matches("^\\$2[aby]\\$\\d{2}\\$.{53}$");
     }
 
     // Delete karyawan

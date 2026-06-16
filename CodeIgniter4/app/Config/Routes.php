@@ -60,6 +60,31 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Web', 'filter' => 'role
     $routes->get('pendapatan', 'PendapatanController::index');
 });
 
+
+// ============================================================
+// REST API ROUTES (JSON) - aligned with Spring Boot/Flutter contract
+// ============================================================
+$routes->group('api', ['namespace' => 'App\Controllers\Api'], function($routes) {
+    $routes->get('auth/health', 'AuthController::health');
+    $routes->post('auth/register', 'AuthController::register');
+    $routes->post('auth/login', 'AuthController::login');
+
+    $routes->get('menu/kategori/(:num)', 'MenuController::findByKategori/$1');
+    $routes->post('menu/bulk', 'MenuController::createBulk');
+    $routes->delete('menu/bulk', 'MenuController::deleteBulk');
+    $routes->resource('menu', ['controller' => 'MenuController']);
+
+    $routes->resource('kategori', ['controller' => 'KategoriController']);
+
+    $routes->post('karyawan/bulk', 'KaryawanController::createBulk');
+    $routes->delete('karyawan/bulk', 'KaryawanController::deleteBulk');
+    $routes->resource('karyawan', ['controller' => 'KaryawanController']);
+
+    $routes->get('transaksi/my', 'TransaksiController::my');
+    $routes->get('transaksi/(:num)/detail', 'TransaksiController::detail/$1');
+    $routes->resource('transaksi', ['controller' => 'TransaksiController']);
+});
+
 // Grup Dashboard (wajib login — dilindungi oleh AuthFilter)
 $routes->group('dashboard', ['namespace' => 'App\Controllers\Web', 'filter' => 'auth'], function($routes) {
     $routes->get('/', 'AdminController::index');

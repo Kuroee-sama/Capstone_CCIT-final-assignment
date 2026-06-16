@@ -11,7 +11,10 @@ import transaction.Group8.repository.MenuRepository;
 import transaction.Group8.security.JwtAuthenticationFilter;
 import transaction.Group8.service.TransaksiService;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -44,6 +47,38 @@ public class DashboardController {
             return ((JwtAuthenticationFilter.JwtAuthenticationDetails) auth.getDetails()).getRole();
         }
         return null;
+    }
+
+
+    /**
+     * GET /api/dashboard/monthly-income
+     * ADMIN only. Mengembalikan rekap pendapatan bulanan seperti halaman
+     * Pendapatan pada CodeIgniter4.
+     */
+    @GetMapping("/monthly-income")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getMonthlyIncome() {
+        List<Map<String, Object>> response = new ArrayList<>();
+
+        for (Object[] row : transaksiService.getMonthlyIncome()) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("tahun", ((Number) row[0]).intValue());
+            item.put("bulan", ((Number) row[1]).intValue());
+            item.put("jumlahTransaksi", ((Number) row[2]).intValue());
+
+            Object total = row[3];
+            if (total instanceof BigDecimal) {
+                item.put("totalPendapatan", total);
+            } else if (total instanceof Number) {
+                item.put("totalPendapatan", BigDecimal.valueOf(((Number) total).doubleValue()));
+            } else {
+                item.put("totalPendapatan", BigDecimal.ZERO);
+            }
+
+            response.add(item);
+        }
+
+        return ResponseEntity.ok(response);
     }
 
     /**

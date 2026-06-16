@@ -74,6 +74,12 @@ public class TransaksiService {
         return transaksiRepository.sumTotalAmount();
     }
 
+
+    // Monthly income summary for admin dashboard
+    public List<Object[]> getMonthlyIncome() {
+        return transaksiRepository.getMonthlyIncome();
+    }
+
     /**
      * Create new transaction with details in one request
      * Backend calculates total from DB prices (never trust frontend total)
@@ -150,6 +156,11 @@ public class TransaksiService {
     // Get detail items by transaction ID
     public List<DetailTransaksi> getDetailTransaksi(Integer transaksiId) {
         return detailTransaksiRepository.findByTransaksiId(transaksiId);
+    }
+
+    // Get detail items in flat response format, aligned with CI4 detail page.
+    public List<DetailTransaksiRepository.DetailTransaksiView> getDetailTransaksiView(Integer transaksiId) {
+        return detailTransaksiRepository.findDetailViewByTransaksiId(transaksiId);
     }
 
     /**
