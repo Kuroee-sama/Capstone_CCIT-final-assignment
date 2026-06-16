@@ -56,6 +56,9 @@
         }
         .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(230,126,34,0.3); }
         .alert { background: #fff5f5; color: #e74c3c; padding: 12px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; border: 1px solid #fecaca; }
+        .success { background: #f0fff4; color: #27ae60; padding: 12px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; border: 1px solid #bbf7d0; }
+        .register-link { margin-top: 20px; color: #636e72; font-size: 14px; }
+        .register-link a { color: #e67e22; font-weight: 700; text-decoration: none; }
         
         @media (max-width: 480px) {
             .login-box { padding: 35px 25px; }
@@ -71,6 +74,9 @@
         <?php if (session()->getFlashdata('error')): ?>
             <div class="alert"><?= session()->getFlashdata('error') ?></div>
         <?php endif; ?>
+        <?php if (session()->getFlashdata('success')): ?>
+            <div class="success"><?= session()->getFlashdata('success') ?></div>
+        <?php endif; ?>
         
         <form action="<?= base_url('login/auth') ?>" method="post">
             <div class="form-group">
@@ -83,6 +89,7 @@
             </div>
             <button type="submit" class="btn-login">Masuk Sistem</button>
         </form>
+        <div class="register-link">Belum punya akun? <a href="<?= base_url('register') ?>">Daftar</a></div>
     </div>
 </body>
 </html>

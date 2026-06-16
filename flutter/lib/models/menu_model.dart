@@ -25,12 +25,10 @@ class MenuModel {
     return MenuModel(
       menuId: json['menuId'] ?? json['menu_id'] ?? 0,
       namaItem: json['namaItem'] ?? json['nama_item'] ?? '',
-      harga: (json['harga'] is int)
-          ? (json['harga'] as int).toDouble()
-          : (json['harga'] ?? 0).toDouble(),
+      harga: _asDouble(json['harga']),
       mDescription: json['mDescription'] ?? json['m_description'],
       gambar: json['gambar'],
-      stok: json['stok'] ?? 0,
+      stok: _asInt(json['stok']),
       kategori: json['kategori'] != null
           ? KategoriModel.fromJson(json['kategori'])
           : null,
@@ -40,4 +38,17 @@ class MenuModel {
 
   String get kategoriNama =>
       kategori?.namaKategori ?? 'Tanpa Kategori';
+
+  static double _asDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static int _asInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
 }

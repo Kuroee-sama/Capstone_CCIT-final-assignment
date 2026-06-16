@@ -67,9 +67,13 @@ class ApiConfig {
   // Kategori endpoints
   static String get kategori => '$baseUrl/kategori';
 
+  // Karyawan endpoints
+  static String get karyawan => '$baseUrl/karyawan';
+
   // Transaksi endpoints
   static String get transaksi => '$baseUrl/transaksi';
   static String get transaksiMy => '$baseUrl/transaksi/my';
+  static String get transaksiRiwayat => '$baseUrl/transaksi/riwayat';
 
   // Dashboard endpoints
   static String get dashboardSummary => '$baseUrl/dashboard/summary';

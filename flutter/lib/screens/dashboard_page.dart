@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
-import 'login_page.dart';
+import 'katalog_page.dart';
+import 'karyawan_management_page.dart';
 import 'menu_management_page.dart';
 import 'pendapatan_page.dart';
 import 'riwayat_page.dart';
@@ -52,7 +53,7 @@ class _DashboardPageState extends State<DashboardPage> {
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
+        MaterialPageRoute(builder: (_) => const KatalogPage()),
         (route) => false,
       );
     }
@@ -77,6 +78,7 @@ class _DashboardPageState extends State<DashboardPage> {
           onDashboard: () {},
           onTransaksi: () => _open(const TransaksiPage()),
           onMenu: isAdmin ? () => _open(const MenuManagementPage()) : null,
+          onKaryawan: isAdmin ? () => _open(const KaryawanManagementPage()) : null,
           onRiwayat: () => _open(const RiwayatPage()),
           onPendapatan: isAdmin ? () => _open(const PendapatanPage()) : null,
           onLogout: _logout,
@@ -136,6 +138,15 @@ class _DashboardPageState extends State<DashboardPage> {
                         borderColor: const Color(0xFF2ECC71),
                         iconBg: const Color(0xFFE8F5E9),
                         onTap: () => _open(const MenuManagementPage()),
+                      ),
+                    if (isAdmin)
+                      _MenuCard(
+                        icon: '👥',
+                        title: 'Kelola Karyawan',
+                        subtitle: 'Tambah, edit, hapus akun.',
+                        borderColor: const Color(0xFF34495E),
+                        iconBg: const Color(0xFFEEF2F7),
+                        onTap: () => _open(const KaryawanManagementPage()),
                       ),
                     _MenuCard(
                       icon: '📜',
@@ -211,6 +222,7 @@ class _CafeNavBar extends StatelessWidget {
   final VoidCallback onDashboard;
   final VoidCallback onTransaksi;
   final VoidCallback? onMenu;
+  final VoidCallback? onKaryawan;
   final VoidCallback onRiwayat;
   final VoidCallback? onPendapatan;
   final VoidCallback onLogout;
@@ -221,6 +233,7 @@ class _CafeNavBar extends StatelessWidget {
     required this.onDashboard,
     required this.onTransaksi,
     required this.onMenu,
+    required this.onKaryawan,
     required this.onRiwayat,
     required this.onPendapatan,
     required this.onLogout,
@@ -250,6 +263,7 @@ class _CafeNavBar extends StatelessWidget {
                     _NavLink(icon: Icons.home, label: 'Dashboard', onTap: onDashboard),
                     _NavLink(icon: Icons.point_of_sale, label: 'Transaksi', onTap: onTransaksi),
                     if (isAdmin && onMenu != null) _NavLink(icon: Icons.restaurant_menu, label: 'Menu', onTap: onMenu!),
+                    if (isAdmin && onKaryawan != null) _NavLink(icon: Icons.groups, label: 'Karyawan', onTap: onKaryawan!),
                     _NavLink(icon: Icons.history, label: 'Riwayat', onTap: onRiwayat),
                     if (isAdmin && onPendapatan != null) _NavLink(icon: Icons.bar_chart, label: 'Pendapatan', onTap: onPendapatan!),
                     const SizedBox(width: 10),

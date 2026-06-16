@@ -16,6 +16,8 @@ $routes->get('katalog', '\App\Controllers\Web\DashboardController::index');
 $routes->group('', ['namespace' => 'App\Controllers\Web'], function($routes) {
     $routes->get('login', 'AuthController::index');
     $routes->post('login/auth', 'AuthController::login');
+    $routes->get('register', 'AuthController::register');
+    $routes->post('register/store', 'AuthController::storeRegister');
     $routes->get('logout', 'AuthController::logout');
 });
 
@@ -56,6 +58,12 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Web', 'filter' => 'role
     // Hapus Transaksi (ADMIN only)
     $routes->get('riwayat/hapus/(:num)', 'RiwayatController::hapus/$1');
     
+    // Karyawan CRUD (ADMIN only)
+    $routes->get('karyawan', 'KaryawanController::index');
+    $routes->post('karyawan/simpan', 'KaryawanController::simpan');
+    $routes->post('karyawan/update/(:num)', 'KaryawanController::update/$1');
+    $routes->get('karyawan/hapus/(:num)', 'KaryawanController::hapus/$1');
+
     // Pendapatan Bulanan (ADMIN only)
     $routes->get('pendapatan', 'PendapatanController::index');
 });

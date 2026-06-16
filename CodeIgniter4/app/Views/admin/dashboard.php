@@ -146,6 +146,14 @@
         </a>
         
         <?php if ($role === 'admin'): ?>
+            <a href="<?= base_url('admin/karyawan') ?>" class="menu-link" style="border-top-color: #34495e;">
+                <div class="icon-box" style="background: #eef2f7;">👥</div>
+                <div>
+                    <h3>Kelola Karyawan</h3>
+                    <p>Tambah, edit, hapus akun.</p>
+                </div>
+            </a>
+
             <a href="<?= base_url('admin/pendapatan') ?>" class="menu-link" style="border-top-color: #9b59b6;">
                 <div class="icon-box" style="background: #f3e5f5;">📊</div>
                 <div>

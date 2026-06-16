@@ -63,6 +63,7 @@
                 <?php if ($role === 'admin'): ?>
                     <!-- Menu items only visible to ADMIN -->
                     <a href="<?= base_url('admin/menu') ?>"><i class="fas fa-utensils"></i> Menu</a>
+                    <a href="<?= base_url('admin/karyawan') ?>"><i class="fas fa-users"></i> Karyawan</a>
                 <?php endif; ?>
                 
                 <a href="<?= base_url('admin/riwayat') ?>"><i class="fas fa-history"></i> Riwayat</a>
@@ -75,6 +76,7 @@
                 <a href="<?= base_url('logout') ?>" class="btn-logout"><i class="fas fa-sign-out-alt"></i> Keluar</a>
             <?php else: ?>
                 <a href="<?= base_url('login') ?>"><i class="fas fa-sign-in-alt"></i> Login</a>
+                <a href="<?= base_url('register') ?>"><i class="fas fa-user-plus"></i> Daftar</a>
             <?php endif; ?>
         </div>
     </nav>

@@ -5,6 +5,7 @@ import '../config/api_config.dart';
 import '../models/menu_model.dart';
 import '../models/kategori_model.dart';
 import '../models/transaksi_model.dart';
+import '../models/karyawan_model.dart';
 import '../models/picked_image_file.dart';
 import 'auth_service.dart';
 
@@ -113,6 +114,28 @@ class ApiService {
     }
 
     throw Exception(_extractErrorMessage(response.body, 'Gagal memuat transaksi'));
+  }
+
+  /// GET - Riwayat transaksi sesuai role.
+  /// Backend menentukan scope data: ADMIN semua transaksi, KARYAWAN hanya transaksi miliknya.
+  static Future<List<TransaksiModel>> getRiwayatTransaksi({int page = 0, int size = 200}) async {
+    final headers = await AuthService.getAuthHeaders();
+    final response = await _send(() => http.get(
+          Uri.parse('${ApiConfig.transaksiRiwayat}?page=$page&size=$size'),
+          headers: headers,
+        ));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final List content = data is Map<String, dynamic>
+          ? data['content'] ?? []
+          : data is List
+              ? data
+              : [];
+      return content.map((t) => TransaksiModel.fromJson(Map<String, dynamic>.from(t as Map))).toList();
+    }
+
+    throw Exception(_extractErrorMessage(response.body, 'Gagal memuat riwayat transaksi'));
   }
 
   /// GET - Header transaksi
@@ -383,6 +406,114 @@ class ApiService {
     if (response.statusCode == 204 || response.statusCode == 200) return;
 
     throw Exception(_extractErrorMessage(response.body, 'Gagal menghapus menu'));
+  }
+
+
+  /// GET - Ambil semua karyawan (admin only)
+  static Future<List<KaryawanModel>> getKaryawan({int page = 0, int size = 200}) async {
+    final headers = await AuthService.getAuthHeaders();
+    final response = await _send(() => http.get(
+          Uri.parse('${ApiConfig.karyawan}?page=$page&size=$size&sortBy=karyawanId&sortDir=asc'),
+          headers: headers,
+        ));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final List content = data is Map<String, dynamic>
+          ? data['content'] ?? []
+          : data is List
+              ? data
+              : [];
+      return content.map((k) => KaryawanModel.fromJson(k)).toList();
+    }
+
+    throw Exception(_extractErrorMessage(response.body, 'Gagal memuat karyawan'));
+  }
+
+  /// POST - Tambah karyawan/admin baru (admin only)
+  static Future<KaryawanModel> createKaryawan({
+    required String username,
+    required String email,
+    required String password,
+    required String role,
+    int? umur,
+    String? alamat,
+    String? tglLahir,
+    String? noTelp,
+  }) async {
+    final headers = await AuthService.getAuthHeaders();
+    final body = <String, dynamic>{
+      'username': username,
+      'email': email,
+      'password': password,
+      'role': role.toUpperCase(),
+    };
+    if (umur != null) body['umur'] = umur;
+    if (alamat != null && alamat.trim().isNotEmpty) body['alamat'] = alamat.trim();
+    if (tglLahir != null && tglLahir.trim().isNotEmpty) body['tglLahir'] = tglLahir.trim();
+    if (noTelp != null && noTelp.trim().isNotEmpty) body['noTelp'] = noTelp.trim();
+
+    final response = await _send(() => http.post(
+          Uri.parse(ApiConfig.karyawan),
+          headers: headers,
+          body: jsonEncode(body),
+        ));
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return KaryawanModel.fromJson(jsonDecode(response.body));
+    }
+
+    throw Exception(_extractErrorMessage(response.body, 'Gagal menambah karyawan'));
+  }
+
+  /// PUT - Edit karyawan/admin (admin only)
+  static Future<KaryawanModel> updateKaryawan({
+    required int karyawanId,
+    required String username,
+    required String email,
+    String? password,
+    required String role,
+    int? umur,
+    String? alamat,
+    String? tglLahir,
+    String? noTelp,
+  }) async {
+    final headers = await AuthService.getAuthHeaders();
+    final body = <String, dynamic>{
+      'username': username,
+      'email': email,
+      'role': role.toUpperCase(),
+    };
+    if (password != null && password.isNotEmpty) body['password'] = password;
+    if (umur != null) body['umur'] = umur;
+    if (alamat != null && alamat.trim().isNotEmpty) body['alamat'] = alamat.trim();
+    if (tglLahir != null && tglLahir.trim().isNotEmpty) body['tglLahir'] = tglLahir.trim();
+    if (noTelp != null && noTelp.trim().isNotEmpty) body['noTelp'] = noTelp.trim();
+
+    final response = await _send(() => http.put(
+          Uri.parse('${ApiConfig.karyawan}/$karyawanId'),
+          headers: headers,
+          body: jsonEncode(body),
+        ));
+
+    if (response.statusCode == 200) {
+      return KaryawanModel.fromJson(jsonDecode(response.body));
+    }
+
+    throw Exception(_extractErrorMessage(response.body, 'Gagal mengubah karyawan'));
+  }
+
+  /// DELETE - Hapus karyawan (admin only)
+  static Future<void> deleteKaryawan(int karyawanId) async {
+    final headers = await AuthService.getAuthHeaders();
+    final response = await _send(() => http.delete(
+          Uri.parse('${ApiConfig.karyawan}/$karyawanId'),
+          headers: headers,
+        ));
+
+    if (response.statusCode == 204 || response.statusCode == 200) return;
+
+    throw Exception(_extractErrorMessage(response.body, 'Gagal menghapus karyawan'));
   }
 
   /// GET - Pendapatan bulanan (admin only)

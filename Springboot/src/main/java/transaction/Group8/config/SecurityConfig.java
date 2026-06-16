@@ -48,6 +48,7 @@ public class SecurityConfig {
                         // Endpoint public (tidak perlu autentikasi)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/menu/**", "/api/kategori/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/explorer/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()

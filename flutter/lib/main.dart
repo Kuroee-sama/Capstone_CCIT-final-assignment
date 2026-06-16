@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'screens/login_page.dart';
+import 'screens/katalog_page.dart';
 import 'screens/dashboard_page.dart';
 import 'services/auth_service.dart';
 
@@ -54,7 +54,7 @@ class AuthGate extends StatelessWidget {
         if (snapshot.data == true) {
           return const DashboardPage();
         }
-        return const LoginPage();
+        return const KatalogPage();
       },
     );
   }

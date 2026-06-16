@@ -25,13 +25,13 @@ public class KategoriController {
     private KategoriService kategoriService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','KARYAWAN')")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<List<Kategori>> getAllKategori() {
         return ResponseEntity.ok(kategoriService.getAllKategori());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','KARYAWAN')")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<?> getKategoriById(@PathVariable Integer id) {
         return kategoriService.getKategoriById(id)
                 .map(k -> ResponseEntity.ok((Object) k))

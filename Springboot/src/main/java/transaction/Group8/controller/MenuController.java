@@ -33,7 +33,7 @@ public class MenuController {
 
     // GET - Get all menu with pagination (ADMIN + KARYAWAN)
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','KARYAWAN')")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<Page<Menu>> getAllMenu(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "100") int size,
@@ -51,7 +51,7 @@ public class MenuController {
 
     // GET - Get menu by ID (ADMIN + KARYAWAN)
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','KARYAWAN')")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<?> getMenuById(@PathVariable Integer id) {
         return menuService.getMenuById(id)
                 .map(menu -> ResponseEntity.ok(menu))
@@ -60,7 +60,7 @@ public class MenuController {
 
     // GET - Get menu by kategori ID with pagination (ADMIN + KARYAWAN)
     @GetMapping("/kategori/{kategoriId}")
-    @PreAuthorize("hasAnyRole('ADMIN','KARYAWAN')")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<?> getMenuByKategori(
             @PathVariable Integer kategoriId,
             @RequestParam(defaultValue = "0") int page,

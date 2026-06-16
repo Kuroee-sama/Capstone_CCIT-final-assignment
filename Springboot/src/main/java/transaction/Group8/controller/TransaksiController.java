@@ -96,6 +96,32 @@ public class TransaksiController {
         return ResponseEntity.ok(transaksiList);
     }
 
+    // GET - Unified transaction history.
+    // ADMIN receives all transactions; KARYAWAN receives only their own transactions.
+    // This mirrors the CI4 web rule and prevents Flutter from deciding data scope on the client side.
+    @GetMapping("/riwayat")
+    @PreAuthorize("hasAnyRole('ADMIN','KARYAWAN')")
+    public ResponseEntity<?> getRiwayatTransaksi(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "200") int size) {
+
+        String role = getCurrentRole();
+        Integer karyawanId = getCurrentKaryawanId();
+
+        if (role == null || karyawanId == null) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Unauthorized");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("transaksiId").descending());
+        Page<Transaksi> transaksiList = "ADMIN".equalsIgnoreCase(role)
+                ? transaksiService.getAllTransaksi(pageable)
+                : transaksiService.getTransaksiByKaryawanId(karyawanId, pageable);
+
+        return ResponseEntity.ok(transaksiList);
+    }
+
     // GET - Get transaction by ID (ADMIN: any, KARYAWAN: own only)
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','KARYAWAN')")
