@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
+import '../widgets/app_notifications.dart';
 
 class PendapatanPage extends StatefulWidget {
   const PendapatanPage({super.key});
@@ -31,9 +32,7 @@ class _PendapatanPageState extends State<PendapatanPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
-      );
+      AppNotifier.error(context, e);
     }
   }
 
@@ -268,7 +267,7 @@ class _IncomeTable extends StatelessWidget {
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minWidth: constraints.maxWidth),
                   child: DataTable(
-                    headingRowColor: MaterialStateProperty.all(const Color(0xFFF8F9FA)),
+                    headingRowColor: WidgetStateProperty.all(const Color(0xFFF8F9FA)),
                     columns: const [
                       DataColumn(label: Text('No')),
                       DataColumn(label: Text('Bulan')),

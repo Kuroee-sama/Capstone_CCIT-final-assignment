@@ -47,12 +47,6 @@
         <a href="<?= base_url('admin/dashboard') ?>">← Kembali ke Dashboard</a>
     </div>
 
-    <?php if (session()->getFlashdata('success')): ?>
-        <div class="alert-box alert-success"><?= session()->getFlashdata('success') ?></div>
-    <?php endif; ?>
-    <?php if (session()->getFlashdata('error')): ?>
-        <div class="alert-box alert-error"><?= session()->getFlashdata('error') ?></div>
-    <?php endif; ?>
 
     <div class="table-wrapper">
         <?php if (!empty($transaksi)): ?>
@@ -98,9 +92,13 @@
 
 <script>
     function confirmHapus(id) {
-        if (confirm('Yakin ingin menghapus transaksi #' + id + '? Data detail transaksi juga akan dihapus.')) {
-            window.location.href = '<?= base_url("admin/riwayat/hapus/") ?>' + id;
-        }
+        showAppConfirm({
+            title: 'Hapus Transaksi #' + id,
+            message: 'Transaksi dan seluruh detailnya akan dihapus permanen.',
+            type: 'danger',
+            confirmText: 'Hapus Transaksi',
+            onConfirm: function () { window.location.href = '<?= base_url("admin/riwayat/hapus/") ?>' + id; }
+        });
     }
 </script>
 <?= $this->endSection() ?>

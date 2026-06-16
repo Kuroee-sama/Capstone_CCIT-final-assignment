@@ -83,6 +83,7 @@
         font-size: 14px; outline: none; transition: border-color 0.3s; font-family: 'Inter', sans-serif;
     }
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #e67e22; }
+    .field-invalid { border-color: #e74c3c !important; box-shadow: 0 0 0 4px rgba(231,76,60,.10); }
     .form-group textarea { resize: vertical; min-height: 80px; }
     .form-group input[type="file"] { padding: 10px; border-style: dashed; background: #fafafa; cursor: pointer; }
 
@@ -124,12 +125,6 @@
         </div>
     </div>
 
-    <?php if (session()->getFlashdata('success')): ?>
-        <div class="alert-box alert-success"><?= session()->getFlashdata('success') ?></div>
-    <?php endif; ?>
-    <?php if (session()->getFlashdata('error')): ?>
-        <div class="alert-box alert-error"><?= session()->getFlashdata('error') ?></div>
-    <?php endif; ?>
 
     <!-- ======================== TABEL KATEGORI ======================== -->
     <h3 class="section-title"><i class="fas fa-tags"></i> Daftar Kategori</h3>
@@ -229,7 +224,7 @@
 <div id="modalMenu" class="modal-overlay">
     <div class="modal-box">
         <h3 id="modalTitle">Tambah Menu Baru</h3>
-        <form id="formMenu" method="post" enctype="multipart/form-data" onsubmit="return validateMenuForm()">
+        <form id="formMenu" method="post" enctype="multipart/form-data" novalidate onsubmit="return validateMenuForm()">
             <input type="hidden" id="isEditMode" value="0">
             <div class="form-group">
                 <label>Nama Item</label>
@@ -237,7 +232,7 @@
             </div>
             <div class="form-group">
                 <label>Kategori</label>
-                <select name="kategori_id" id="inp_kategori">
+                <select name="kategori_id" id="inp_kategori" size="1">
                     <option value="">-- Pilih Kategori --</option>
                     <?php if (!empty($kategori)): ?>
                         <?php foreach ($kategori as $k): ?>
@@ -281,7 +276,7 @@
 <div id="modalKategori" class="modal-overlay">
     <div class="modal-box">
         <h3 id="modalKategoriTitle">Tambah Kategori Baru</h3>
-        <form id="formKategori" method="post" onsubmit="return validateKategoriForm()">
+        <form id="formKategori" method="post" novalidate onsubmit="return validateKategoriForm()">
             <div class="form-group">
                 <label>Nama Kategori</label>
                 <input type="text" name="nama_kategori" id="inp_nama_kategori" placeholder="Contoh: Kopi">
@@ -362,9 +357,13 @@
     }
 
     function confirmHapus(id) {
-        if (confirm('Yakin ingin menghapus menu ini?')) {
-            window.location.href = '<?= base_url("admin/menu/hapus/") ?>' + id;
-        }
+        showAppConfirm({
+            title: 'Hapus Menu',
+            message: 'Menu ini akan dihapus dari daftar. Tindakan ini tidak dapat dibatalkan.',
+            type: 'danger',
+            confirmText: 'Hapus Menu',
+            onConfirm: function () { window.location.href = '<?= base_url("admin/menu/hapus/") ?>' + id; }
+        });
     }
 
     document.getElementById('modalMenu').addEventListener('click', function(e) {
@@ -395,14 +394,29 @@
     }
 
     function confirmHapusKategori(id) {
-        if (confirm('Yakin ingin menghapus kategori ini? Menu yang terhubung akan kehilangan kategorinya.')) {
-            window.location.href = '<?= base_url("admin/kategori/hapus/") ?>' + id;
-        }
+        showAppConfirm({
+            title: 'Hapus Kategori',
+            message: 'Kategori akan dihapus. Menu yang terhubung dapat kehilangan kategori.',
+            type: 'danger',
+            confirmText: 'Hapus Kategori',
+            onConfirm: function () { window.location.href = '<?= base_url("admin/kategori/hapus/") ?>' + id; }
+        });
     }
 
     document.getElementById('modalKategori').addEventListener('click', function(e) {
         if (e.target === this) closeKategoriModal();
     });
+
+    function notifyInvalid(fieldId, message) {
+        showAppToast(message, 'warning', 'Data belum lengkap');
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.focus({ preventScroll: false });
+            field.classList.add('field-invalid');
+            setTimeout(function () { field.classList.remove('field-invalid'); }, 1400);
+        }
+        return false;
+    }
 
     // ========================================
     // VALIDASI FORM MENU
@@ -417,24 +431,24 @@
         const isEdit = document.getElementById('isEditMode').value === '1';
 
         // Cek field kosong
-        if (!nama) { alert('Bagian Nama Item wajib untuk diisi'); return false; }
-        if (!kategori) { alert('Bagian Kategori wajib untuk diisi'); return false; }
-        if (!harga) { alert('Bagian Harga wajib untuk diisi'); return false; }
-        if (Number(harga) < 0) { alert('Harga tidak boleh bernilai negatif'); return false; }
-        if (stok === '') { alert('Bagian Stok wajib untuk diisi'); return false; }
-        if (!Number.isInteger(Number(stok)) || Number(stok) < 0) { alert('Stok harus berupa bilangan bulat dan tidak boleh negatif'); return false; }
-        if (!deskripsi) { alert('Bagian Deskripsi wajib untuk diisi'); return false; }
+        if (!nama) return notifyInvalid('inp_nama', 'Nama item wajib diisi.');
+        if (!kategori) return notifyInvalid('inp_kategori', 'Kategori wajib dipilih.');
+        if (!harga) return notifyInvalid('inp_harga', 'Harga wajib diisi.');
+        if (Number(harga) < 0) return notifyInvalid('inp_harga', 'Harga tidak boleh bernilai negatif.');
+        if (stok === '') return notifyInvalid('inp_stok', 'Stok wajib diisi.');
+        if (!Number.isInteger(Number(stok)) || Number(stok) < 0) return notifyInvalid('inp_stok', 'Stok harus berupa bilangan bulat dan tidak boleh negatif.');
+        if (!deskripsi) return notifyInvalid('inp_deskripsi', 'Deskripsi menu wajib diisi.');
 
         // Gambar wajib saat tambah baru, opsional saat edit
         if (!isEdit && (!gambar.files || gambar.files.length === 0)) {
-            alert('Bagian Gambar Menu wajib untuk diisi');
-            return false;
+            return notifyInvalid('inp_gambar', 'Gambar menu wajib dipilih saat menambah menu baru.');
         }
 
         // Validasi panjang karakter
-        if (nama.length < 5) { alert('Nama Item tidak boleh kurang dari 5 karakter'); return false; }
-        if (deskripsi.length < 15) { alert('Deskripsi tidak boleh kurang dari 15 karakter'); return false; }
+        if (nama.length < 5) return notifyInvalid('inp_nama', 'Nama item minimal 5 karakter.');
+        if (deskripsi.length < 15) return notifyInvalid('inp_deskripsi', 'Deskripsi menu minimal 15 karakter.');
 
+        showAppToast(isEdit ? 'Menyimpan perubahan menu...' : 'Menyimpan menu baru...', 'info', 'Diproses', 1800);
         return true;
     }
 
@@ -446,13 +460,14 @@
         const deskripsi = document.getElementById('inp_k_description').value.trim();
 
         // Cek field kosong
-        if (!nama) { alert('Bagian Nama Kategori wajib untuk diisi'); return false; }
-        if (!deskripsi) { alert('Bagian Deskripsi Kategori wajib untuk diisi'); return false; }
+        if (!nama) return notifyInvalid('inp_nama_kategori', 'Nama kategori wajib diisi.');
+        if (!deskripsi) return notifyInvalid('inp_k_description', 'Deskripsi kategori wajib diisi.');
 
         // Validasi panjang karakter
-        if (nama.length < 5) { alert('Nama Kategori tidak boleh kurang dari 5 karakter'); return false; }
-        if (deskripsi.length < 15) { alert('Deskripsi Kategori tidak boleh kurang dari 15 karakter'); return false; }
+        if (nama.length < 5) return notifyInvalid('inp_nama_kategori', 'Nama kategori minimal 5 karakter.');
+        if (deskripsi.length < 15) return notifyInvalid('inp_k_description', 'Deskripsi kategori minimal 15 karakter.');
 
+        showAppToast('Menyimpan kategori...', 'info', 'Diproses', 1800);
         return true;
     }
 </script>

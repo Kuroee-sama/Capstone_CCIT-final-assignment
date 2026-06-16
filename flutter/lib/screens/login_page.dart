@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../widgets/app_notifications.dart';
 import 'dashboard_page.dart';
 import 'register_page.dart';
 
@@ -20,6 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _login() async {
     if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
       setState(() => _errorMessage = 'Username dan password wajib diisi');
+      AppNotifier.warning(context, 'Username dan password wajib diisi.', title: 'Data belum lengkap');
       return;
     }
 
@@ -42,6 +44,7 @@ class _LoginPageState extends State<LoginPage> {
       }
     } catch (e) {
       setState(() => _errorMessage = e.toString().replaceAll('Exception: ', ''));
+      if (mounted) AppNotifier.error(context, e, title: 'Login gagal');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

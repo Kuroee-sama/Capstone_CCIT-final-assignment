@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../widgets/app_notifications.dart';
 import 'dashboard_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -21,10 +22,12 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _register() async {
     if (_usernameCtrl.text.isEmpty || _emailCtrl.text.isEmpty || _passwordCtrl.text.isEmpty) {
       setState(() => _error = 'Username, email, dan password wajib diisi');
+      AppNotifier.warning(context, 'Username, email, dan password wajib diisi.', title: 'Data belum lengkap');
       return;
     }
     if (_passwordCtrl.text.length < 6) {
       setState(() => _error = 'Password minimal 6 karakter');
+      AppNotifier.warning(context, 'Password minimal 6 karakter.', title: 'Data belum valid');
       return;
     }
 
@@ -47,6 +50,7 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     } catch (e) {
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      if (mounted) AppNotifier.error(context, e, title: 'Registrasi gagal');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

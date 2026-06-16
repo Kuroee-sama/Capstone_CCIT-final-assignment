@@ -6,6 +6,7 @@ import '../models/picked_image_file.dart';
 import '../services/api_service.dart';
 import '../services/menu_image_picker.dart';
 import '../widgets/menu_image.dart';
+import '../widgets/app_notifications.dart';
 
 class MenuManagementPage extends StatefulWidget {
   const MenuManagementPage({super.key});
@@ -45,35 +46,22 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
     }
   }
 
-  void _showError(Object e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(e.toString().replaceAll('Exception: ', '')),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
+  void _showError(Object e) => AppNotifier.error(context, e);
 
-  Future<void> _confirmDelete(String title, Future<void> Function() action) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Konfirmasi Hapus'),
-        content: Text(title),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE74C3C), foregroundColor: Colors.white),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
+  Future<void> _confirmDelete(String title, Future<void> Function() action, String successMessage) async {
+    final ok = await AppNotifier.confirm(
+      context,
+      title: 'Konfirmasi Hapus',
+      message: title,
+      confirmText: 'Hapus',
+      danger: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
     try {
       await action();
       await _load();
+      if (!mounted) return;
+      AppNotifier.success(context, successMessage);
     } catch (e) {
       _showError(e);
     }
@@ -107,7 +95,7 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                   _KategoriTable(
                     kategori: _kategori,
                     onEdit: (k) => _openKategoriDialog(kategori: k),
-                    onDelete: (k) => _confirmDelete('Hapus kategori "${k.namaKategori}"?', () => ApiService.deleteKategori(k.kategoriId)),
+                    onDelete: (k) => _confirmDelete('Hapus kategori "${k.namaKategori}"? Menu yang terhubung dapat kehilangan kategori.', () => ApiService.deleteKategori(k.kategoriId), 'Kategori berhasil dihapus.'),
                   ),
                   const SizedBox(height: 34),
                   _SectionTitle(icon: Icons.restaurant_menu, title: 'Daftar Menu'),
@@ -115,7 +103,7 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                   _MenuTable(
                     menu: _menu,
                     onEdit: (m) => _openMenuDialog(menu: m),
-                    onDelete: (m) => _confirmDelete('Hapus menu "${m.namaItem}"?', () => ApiService.deleteMenu(m.menuId)),
+                    onDelete: (m) => _confirmDelete('Hapus menu "${m.namaItem}"? Tindakan ini tidak dapat dibatalkan.', () => ApiService.deleteMenu(m.menuId), 'Menu berhasil dihapus.'),
                   ),
                 ],
               ),
@@ -148,12 +136,29 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
           ElevatedButton(
             onPressed: () async {
-              if (nama.text.trim().isEmpty) return;
+              final namaValue = nama.text.trim();
+              final deskripsiValue = deskripsi.text.trim();
+              if (namaValue.isEmpty) {
+                AppNotifier.warning(context, 'Nama kategori wajib diisi.', title: 'Data belum lengkap');
+                return;
+              }
+              if (namaValue.length < 5) {
+                AppNotifier.warning(context, 'Nama kategori minimal 5 karakter.', title: 'Data belum valid');
+                return;
+              }
+              if (deskripsiValue.isEmpty) {
+                AppNotifier.warning(context, 'Deskripsi kategori wajib diisi.', title: 'Data belum lengkap');
+                return;
+              }
+              if (deskripsiValue.length < 15) {
+                AppNotifier.warning(context, 'Deskripsi kategori minimal 15 karakter.', title: 'Data belum valid');
+                return;
+              }
               try {
                 if (isEdit) {
-                  await ApiService.updateKategori(kategoriId: kategori.kategoriId, namaKategori: nama.text.trim(), deskripsi: deskripsi.text.trim());
+                  await ApiService.updateKategori(kategoriId: kategori.kategoriId, namaKategori: namaValue, deskripsi: deskripsiValue);
                 } else {
-                  await ApiService.createKategori(namaKategori: nama.text.trim(), deskripsi: deskripsi.text.trim());
+                  await ApiService.createKategori(namaKategori: namaValue, deskripsi: deskripsiValue);
                 }
                 if (context.mounted) Navigator.pop(context, true);
               } catch (e) {
@@ -166,7 +171,11 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
         ],
       ),
     );
-    if (saved == true) await _load();
+    if (saved == true) {
+      await _load();
+      if (!mounted) return;
+      AppNotifier.success(context, isEdit ? 'Kategori berhasil diperbarui.' : 'Kategori berhasil ditambahkan.');
+    }
   }
 
   Future<void> _openMenuDialog({MenuModel? menu}) async {
@@ -222,9 +231,11 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                           _Input(label: 'Nama Item', controller: nama),
                           const SizedBox(height: 14),
                           DropdownButtonFormField<int>(
-                            value: selectedKategori,
+                            initialValue: selectedKategori,
+                            isExpanded: true,
+                            menuMaxHeight: 280,
                             decoration: _inputDecoration('Kategori'),
-                            items: _kategori.map((k) => DropdownMenuItem(value: k.kategoriId, child: Text(k.namaKategori))).toList(),
+                            items: _kategori.map((k) => DropdownMenuItem(value: k.kategoriId, child: Text(k.namaKategori, overflow: TextOverflow.ellipsis))).toList(),
                             onChanged: (value) => setDialogState(() => selectedKategori = value ?? selectedKategori),
                           ),
                           const SizedBox(height: 14),
@@ -266,27 +277,64 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
                         const SizedBox(width: 10),
                         ElevatedButton(
                           onPressed: () async {
+                            final namaValue = nama.text.trim();
+                            final deskripsiValue = deskripsi.text.trim();
                             final parsedHarga = double.tryParse(harga.text.replaceAll('.', '').replaceAll(',', '.'));
                             final parsedStok = int.tryParse(stok.text);
-                            if (nama.text.trim().isEmpty || parsedHarga == null || parsedStok == null) return;
+                            if (namaValue.isEmpty) {
+                              AppNotifier.warning(context, 'Nama item wajib diisi.', title: 'Data belum lengkap');
+                              return;
+                            }
+                            if (namaValue.length < 5) {
+                              AppNotifier.warning(context, 'Nama item minimal 5 karakter.', title: 'Data belum valid');
+                              return;
+                            }
+                            if (parsedHarga == null) {
+                              AppNotifier.warning(context, 'Harga wajib diisi dengan angka yang valid.', title: 'Data belum lengkap');
+                              return;
+                            }
+                            if (parsedHarga < 0) {
+                              AppNotifier.warning(context, 'Harga tidak boleh bernilai negatif.', title: 'Data belum valid');
+                              return;
+                            }
+                            if (parsedStok == null) {
+                              AppNotifier.warning(context, 'Stok wajib diisi dengan bilangan bulat.', title: 'Data belum lengkap');
+                              return;
+                            }
+                            if (parsedStok < 0) {
+                              AppNotifier.warning(context, 'Stok tidak boleh bernilai negatif.', title: 'Data belum valid');
+                              return;
+                            }
+                            if (deskripsiValue.isEmpty) {
+                              AppNotifier.warning(context, 'Deskripsi menu wajib diisi.', title: 'Data belum lengkap');
+                              return;
+                            }
+                            if (deskripsiValue.length < 15) {
+                              AppNotifier.warning(context, 'Deskripsi menu minimal 15 karakter.', title: 'Data belum valid');
+                              return;
+                            }
+                            if (!isEdit && selectedImage == null) {
+                              AppNotifier.warning(context, 'Gambar menu wajib dipilih saat menambah menu baru.', title: 'Data belum lengkap');
+                              return;
+                            }
                             try {
                               if (isEdit) {
                                 await ApiService.updateMenuWithImage(
                                   menuId: menu.menuId,
-                                  namaItem: nama.text.trim(),
+                                  namaItem: namaValue,
                                   harga: parsedHarga,
                                   stok: parsedStok,
                                   kategoriId: selectedKategori,
-                                  deskripsi: deskripsi.text.trim(),
+                                  deskripsi: deskripsiValue,
                                   image: selectedImage,
                                 );
                               } else {
                                 await ApiService.createMenuWithImage(
-                                  namaItem: nama.text.trim(),
+                                  namaItem: namaValue,
                                   harga: parsedHarga,
                                   stok: parsedStok,
                                   kategoriId: selectedKategori,
-                                  deskripsi: deskripsi.text.trim(),
+                                  deskripsi: deskripsiValue,
                                   image: selectedImage,
                                 );
                               }
@@ -313,7 +361,11 @@ class _MenuManagementPageState extends State<MenuManagementPage> {
         },
       ),
     );
-    if (saved == true) await _load();
+    if (saved == true) {
+      await _load();
+      if (!mounted) return;
+      AppNotifier.success(context, isEdit ? 'Menu berhasil diperbarui.' : 'Menu berhasil ditambahkan.');
+    }
   }
 }
 
@@ -602,7 +654,7 @@ class _KategoriTable extends StatelessWidget {
     }
     return _TableBox(
       child: DataTable(
-        headingRowColor: MaterialStateProperty.all(const Color(0xFFF8F9FA)),
+        headingRowColor: WidgetStateProperty.all(const Color(0xFFF8F9FA)),
         columns: const [
           DataColumn(label: Text('No')),
           DataColumn(label: Text('Nama Kategori')),
@@ -639,7 +691,7 @@ class _MenuTable extends StatelessWidget {
     }
     return _TableBox(
       child: DataTable(
-        headingRowColor: MaterialStateProperty.all(const Color(0xFFF8F9FA)),
+        headingRowColor: WidgetStateProperty.all(const Color(0xFFF8F9FA)),
         columns: const [
           DataColumn(label: Text('No')),
           DataColumn(label: Text('Gambar')),

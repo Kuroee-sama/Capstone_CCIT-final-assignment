@@ -31,6 +31,7 @@
     label { display:block; font-size:12px; color:#636e72; font-weight:700; margin-bottom:6px; }
     input, select, textarea { width:100%; border:2px solid #eee; border-radius:12px; padding:12px 13px; font-family:Inter,sans-serif; outline:none; }
     input:focus, select:focus, textarea:focus { border-color:#e67e22; }
+    .field-invalid { border-color:#e74c3c !important; box-shadow:0 0 0 4px rgba(231,76,60,.10); }
     textarea { resize:vertical; min-height:80px; }
     .modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
     .btn-secondary { background:#f3f4f6; color:#374151; border:0; border-radius:12px; padding:12px 16px; cursor:pointer; font-weight:700; }
@@ -45,12 +46,6 @@
     <button class="btn-primary" onclick="openCreateModal()"><i class="fas fa-user-plus"></i> Tambah Karyawan</button>
 </div>
 
-<?php if (session()->getFlashdata('success')): ?>
-    <div class="alert alert-success"><?= session()->getFlashdata('success') ?></div>
-<?php endif; ?>
-<?php if (session()->getFlashdata('error')): ?>
-    <div class="alert alert-error"><?= session()->getFlashdata('error') ?></div>
-<?php endif; ?>
 
 <div class="card table-wrap">
     <table>
@@ -82,7 +77,7 @@
                     <div class="actions">
                         <button class="btn-edit" onclick='openEditModal(<?= json_encode($row, JSON_HEX_APOS|JSON_HEX_QUOT) ?>)'><i class="fas fa-edit"></i> Edit</button>
                         <?php if ((int) session()->get('id') !== (int) $row['karyawan_id']): ?>
-                            <a class="btn-delete" href="<?= base_url('admin/karyawan/hapus/'.$row['karyawan_id']) ?>" onclick="return confirm('Hapus karyawan ini? Semua transaksi miliknya dapat ikut terhapus sesuai relasi database.')"><i class="fas fa-trash"></i> Hapus</a>
+                            <button class="btn-delete" type="button" onclick="confirmDeleteKaryawan(<?= (int) $row['karyawan_id'] ?>, <?= json_encode($row['username']) ?>)"><i class="fas fa-trash"></i> Hapus</button>
                         <?php endif; ?>
                     </div>
                 </td>
@@ -95,7 +90,7 @@
 <div class="modal" id="karyawanModal">
     <div class="modal-box">
         <h2 id="modalTitle">Tambah Karyawan</h2>
-        <form id="karyawanForm" action="<?= base_url('admin/karyawan/simpan') ?>" method="post">
+        <form id="karyawanForm" action="<?= base_url('admin/karyawan/simpan') ?>" method="post" novalidate onsubmit="return validateKaryawanForm()">
             <?= csrf_field() ?>
             <div class="form-grid">
                 <div class="form-group">
@@ -167,6 +162,43 @@ function openEditModal(row){
     document.getElementById('karyawanModal').classList.add('active');
 }
 function closeModal(){ document.getElementById('karyawanModal').classList.remove('active'); }
+
+function notifyInvalid(fieldId, message) {
+    showAppToast(message, 'warning', 'Data belum lengkap');
+    const field = document.getElementById(fieldId);
+    if (field) {
+        field.focus({ preventScroll: false });
+        field.classList.add('field-invalid');
+        setTimeout(function () { field.classList.remove('field-invalid'); }, 1400);
+    }
+    return false;
+}
+
+function validateKaryawanForm(){
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password');
+    const role = document.getElementById('role').value;
+    if (!username) return notifyInvalid('username', 'Username wajib diisi.');
+    if (username.length < 3) return notifyInvalid('username', 'Username minimal 3 karakter.');
+    if (!email) return notifyInvalid('email', 'Email wajib diisi.');
+    if (!email.includes('@')) return notifyInvalid('email', 'Format email belum valid.');
+    if (password.required && password.value.length < 6) return notifyInvalid('password', 'Password minimal 6 karakter.');
+    if (!role) return notifyInvalid('role', 'Role wajib dipilih.');
+    showAppToast('Menyimpan data karyawan...', 'info', 'Diproses', 1800);
+    return true;
+}
+
+function confirmDeleteKaryawan(id, username){
+    showAppConfirm({
+        title: 'Hapus Karyawan',
+        message: 'Akun ' + username + ' akan dihapus. Data transaksi terkait dapat ikut terpengaruh sesuai relasi database.',
+        type: 'danger',
+        confirmText: 'Hapus Karyawan',
+        onConfirm: function () { window.location.href = '<?= base_url('admin/karyawan/hapus') ?>/' + id; }
+    });
+}
+
 window.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeModal(); });
 </script>
 

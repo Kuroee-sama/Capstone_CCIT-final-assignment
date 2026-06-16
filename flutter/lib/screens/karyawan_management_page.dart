@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/karyawan_model.dart';
 import '../services/api_service.dart';
+import '../widgets/app_notifications.dart';
 
 class KaryawanManagementPage extends StatefulWidget {
   const KaryawanManagementPage({super.key});
@@ -49,35 +50,31 @@ class _KaryawanManagementPageState extends State<KaryawanManagementPage> {
       barrierDismissible: false,
       builder: (_) => _KaryawanFormDialog(item: item),
     );
-    if (saved == true) _load();
+    if (saved == true) {
+      await _load();
+      if (!mounted) return;
+      AppNotifier.success(context, item == null ? 'Karyawan berhasil ditambahkan.' : 'Data karyawan berhasil diperbarui.');
+    }
   }
 
   Future<void> _delete(KaryawanModel item) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hapus Karyawan'),
-        content: Text('Hapus akun ${item.username}? Data transaksi yang terkait dapat ikut terpengaruh sesuai aturan database.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE74C3C)),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
+    final ok = await AppNotifier.confirm(
+      context,
+      title: 'Hapus Karyawan',
+      message: 'Hapus akun ${item.username}? Data transaksi yang terkait dapat ikut terpengaruh sesuai aturan database.',
+      confirmText: 'Hapus',
+      danger: true,
     );
-    if (ok != true) return;
+    if (!ok) return;
 
     try {
       await ApiService.deleteKaryawan(item.karyawanId);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Karyawan berhasil dihapus')));
+      AppNotifier.success(context, 'Karyawan berhasil dihapus.');
       _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))));
+      AppNotifier.error(context, e);
     }
   }
 
@@ -276,7 +273,10 @@ class _KaryawanFormDialogState extends State<_KaryawanFormDialog> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      AppNotifier.warning(context, 'Periksa kembali kolom yang belum valid.', title: 'Data belum lengkap');
+      return;
+    }
     setState(() { _saving = true; _error = null; });
 
     final umur = _umurCtrl.text.trim().isEmpty ? null : int.tryParse(_umurCtrl.text.trim());
@@ -307,7 +307,10 @@ class _KaryawanFormDialogState extends State<_KaryawanFormDialog> {
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      if (mounted) {
+        setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+        AppNotifier.error(context, e);
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -342,7 +345,7 @@ class _KaryawanFormDialogState extends State<_KaryawanFormDialog> {
                     _sized(compact, _field(_emailCtrl, 'Email', required: true, keyboardType: TextInputType.emailAddress)),
                     _sized(compact, _field(_passwordCtrl, _isEdit ? 'Password baru (opsional)' : 'Password', required: !_isEdit, obscure: true)),
                     _sized(compact, DropdownButtonFormField<String>(
-                      value: _role,
+                      initialValue: _role,
                       decoration: _decoration('Role'),
                       items: const [DropdownMenuItem(value: 'KARYAWAN', child: Text('KARYAWAN')), DropdownMenuItem(value: 'ADMIN', child: Text('ADMIN'))],
                       onChanged: (v) => setState(() => _role = v ?? 'KARYAWAN'),

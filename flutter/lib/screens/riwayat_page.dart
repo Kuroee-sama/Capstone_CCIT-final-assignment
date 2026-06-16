@@ -4,6 +4,7 @@ import '../models/transaksi_model.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import 'riwayat_detail_page.dart';
+import '../widgets/app_notifications.dart';
 
 class RiwayatPage extends StatefulWidget {
   const RiwayatPage({super.key});
@@ -52,46 +53,24 @@ class _RiwayatPageState extends State<RiwayatPage> {
   Future<void> _confirmDelete(TransaksiModel transaksi) async {
     if (!_isAdmin) return;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Hapus Transaksi #${transaksi.transaksiId}?'),
-        content: const Text('Data transaksi dan detail item akan dihapus. Stok menu akan dikembalikan.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            icon: const Icon(Icons.delete, size: 17),
-            label: const Text('Hapus'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE74C3C),
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await AppNotifier.confirm(
+      context,
+      title: 'Hapus Transaksi #${transaksi.transaksiId}?',
+      message: 'Data transaksi dan detail item akan dihapus. Stok menu akan dikembalikan.',
+      confirmText: 'Hapus',
+      danger: true,
     );
 
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       await ApiService.deleteTransaksi(transaksi.transaksiId);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Transaksi #${transaksi.transaksiId} berhasil dihapus')),
-      );
+      AppNotifier.success(context, 'Transaksi #${transaksi.transaksiId} berhasil dihapus.');
       await _load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: const Color(0xFFE74C3C),
-        ),
-      );
+      AppNotifier.error(context, e);
     }
   }
 

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 15 Jun 2026 pada 16.50
+-- Waktu pembuatan: 16 Jun 2026 pada 10.21
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -62,7 +62,7 @@ INSERT INTO `detail_transaksi` (`detail_id`, `transaksi_id`, `menu_id`, `jumlah`
 (19, 9, 4, 1, 28000.00, 28000.00),
 (20, 10, 1, 2, 25000.00, 50000.00),
 (21, 10, 5, 1, 45000.00, 45000.00),
-(22, 11, 7, 2, 9999.00, 19998.00),
+(22, 11, NULL, 2, 9999.00, 19998.00),
 (23, 12, 1, 1, 20000.00, 20000.00),
 (24, 12, 2, 1, 35000.00, 35000.00),
 (25, 12, 3, 1, 38000.00, 38000.00),
@@ -79,7 +79,16 @@ INSERT INTO `detail_transaksi` (`detail_id`, `transaksi_id`, `menu_id`, `jumlah`
 (36, 16, 4, 1, 28000.00, 28000.00),
 (37, 17, 1, 100, 20000.00, 2000000.00),
 (38, 18, 2, 3, 35000.00, 105000.00),
-(39, 18, 5, 2, 45000.00, 90000.00);
+(39, 18, 5, 2, 45000.00, 90000.00),
+(40, 19, 2, 5, 35000.00, 175000.00),
+(41, 19, 4, 2, 28000.00, 56000.00),
+(42, 19, 5, 1, 45000.00, 45000.00),
+(43, 20, 2, 1, 35000.00, 35000.00),
+(44, 20, 3, 2, 38000.00, 76000.00),
+(45, 20, 5, 1, 45000.00, 45000.00),
+(46, 21, 3, 1, 38000.00, 38000.00),
+(47, 21, 2, 2, 35000.00, 70000.00),
+(48, 21, 5, 1, 45000.00, 45000.00);
 
 -- --------------------------------------------------------
 
@@ -106,7 +115,8 @@ CREATE TABLE `karyawan` (
 INSERT INTO `karyawan` (`karyawan_id`, `username`, `email`, `password`, `umur`, `alamat`, `tgl_lahir`, `no_telp`, `role`) VALUES
 (1, 'kasir_andi', 'andi@cafe.com', '$2y$12$N4EcIxl.zX4zkHY8Z3ely.h0vKzqxObVlQHixRYMin1YoSjKNDVoO', 24, 'Jl. Melati No. 10, Jakarta', '2000-03-15', '082111222333', 'KARYAWAN'),
 (2, 'kasir_dewi', 'dewi@cafe.com', '$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzYYKnFz1W0mB6o5mG2', 26, 'Jl. Mawar No. 20, Bandung', '1998-07-20', '082111222334', 'KARYAWAN'),
-(3, 'manager_rio', 'rio@cafe.com', '$2y$12$N4EcIxl.zX4zkHY8Z3ely.h0vKzqxObVlQHixRYMin1YoSjKNDVoO', 35, 'Jl. Anggrek No. 30, Jakarta', '1989-11-10', '082111222335', 'ADMIN');
+(3, 'manager_rio', 'rio@cafe.com', '$2y$12$N4EcIxl.zX4zkHY8Z3ely.h0vKzqxObVlQHixRYMin1YoSjKNDVoO', 35, 'Jl. Anggrek No. 30, Jakarta', '1989-11-10', '082111222335', 'ADMIN'),
+(4, 'kasir1', 'kasir1@cafe.com', '$2y$10$7rmAbuuj9Qz66ZfmCDFa4OV34XZP6McyyBaxldHq16VhybanC8Spe', NULL, NULL, NULL, NULL, 'KARYAWAN');
 
 -- --------------------------------------------------------
 
@@ -127,7 +137,15 @@ CREATE TABLE `kategori` (
 INSERT INTO `kategori` (`kategori_id`, `nama_kategori`, `k_description`) VALUES
 (1, 'Kopi', 'Menu minuman berbasis kopi'),
 (2, 'Pastry', 'Menu roti dan pastry'),
-(3, 'Makanan', 'Menu makanan berat/snack');
+(3, 'Makanan', 'Menu makanan berat/snack'),
+(4, 'tes1', ''),
+(5, 'tes2', ''),
+(6, 'tes3', ''),
+(7, 'tes4', ''),
+(8, 'tes5', ''),
+(9, 'tes6', ''),
+(10, 'tes7', ''),
+(11, 'tes8', '');
 
 -- --------------------------------------------------------
 
@@ -151,10 +169,10 @@ CREATE TABLE `menu` (
 
 INSERT INTO `menu` (`menu_id`, `nama_item`, `harga`, `m_description`, `gambar`, `stok`, `kategori_id`) VALUES
 (1, 'Espresso', 20000.00, 'Kopi espresso Italia yang kuat dan aromatik', '1772350960_ed458c674146755692b1.jpeg', 1, 1),
-(2, 'Cappuccino', 35000.00, 'Perpaduan sempurna espresso dengan susu berbusa', '1772350971_4a47e873c2bfda7d9f38.jpeg', 197, 1),
-(3, 'Latte', 38000.00, 'Kopi susu dengan foam lembut', '1772350981_f07fca931997ccbd28cd.jpeg', 111, 1),
-(4, 'Croissant', 28000.00, 'Pastry Prancis yang renyah dan lembut', '1772349776_502b614628c484e3b01c.jpeg', 9, 2),
-(5, 'Sandwich', 45000.00, 'Sandwich dengan isian daging dan sayuran segar', '1772350992_eb9e59ed50523e2084ba.jpeg', 98, 3),
+(2, 'Cappuccino', 35000.00, 'Perpaduan sempurna espresso dengan susu berbusa', '1772350971_4a47e873c2bfda7d9f38.jpeg', 189, 1),
+(3, 'Latte', 38000.00, 'Kopi susu dengan foam lembut', '1772350981_f07fca931997ccbd28cd.jpeg', 108, 1),
+(4, 'Croissant', 28000.00, 'Pastry Prancis yang renyah dan lembut', '1772349776_502b614628c484e3b01c.jpeg', 7, 2),
+(5, 'Sandwich', 45000.00, 'Sandwich dengan isian daging dan sayuran segar', '1772350992_eb9e59ed50523e2084ba.jpeg', 95, 3),
 (6, 'Cake Slice', 32000.00, 'Potongan kue lezat dengan berbagai rasa', '1772351025_0c47cdf513b1efb0b96d.jpeg', 67, 2);
 
 -- --------------------------------------------------------
@@ -218,7 +236,10 @@ INSERT INTO `transaksi` (`transaksi_id`, `karyawan_id`, `tgl_transaksi`, `total_
 (15, 3, '2026-03-01 08:05:53', 396000.00, 'CASH', NULL, NULL),
 (16, 3, '2026-03-01 08:07:38', 28000.00, 'CASH', NULL, NULL),
 (17, 3, '2026-06-15 12:44:12', 2000000.00, 'CASH', NULL, NULL),
-(18, 3, '2026-06-15 13:49:11', 195000.00, 'CASH', NULL, NULL);
+(18, 3, '2026-06-15 13:49:11', 195000.00, 'CASH', NULL, NULL),
+(19, 3, '2026-06-15 15:01:58', 276000.00, 'CASH', NULL, NULL),
+(20, 1, '2026-06-16 08:10:55', 156000.00, 'CASH', 156000.00, 0.00),
+(21, 1, '2026-06-16 08:11:27', 153000.00, 'CASH', NULL, NULL);
 
 --
 -- Indexes for dumped tables
@@ -276,19 +297,19 @@ ALTER TABLE `transaksi`
 -- AUTO_INCREMENT untuk tabel `detail_transaksi`
 --
 ALTER TABLE `detail_transaksi`
-  MODIFY `detail_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
+  MODIFY `detail_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
 
 --
 -- AUTO_INCREMENT untuk tabel `karyawan`
 --
 ALTER TABLE `karyawan`
-  MODIFY `karyawan_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `karyawan_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT untuk tabel `kategori`
 --
 ALTER TABLE `kategori`
-  MODIFY `kategori_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `kategori_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT untuk tabel `menu`
@@ -300,11 +321,23 @@ ALTER TABLE `menu`
 -- AUTO_INCREMENT untuk tabel `transaksi`
 --
 ALTER TABLE `transaksi`
-  MODIFY `transaksi_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `transaksi_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- Ketidakleluasaan untuk tabel pelimpahan (Dumped Tables)
 --
+
+--
+-- Ketidakleluasaan untuk tabel `detail_transaksi`
+--
+ALTER TABLE `detail_transaksi`
+  ADD CONSTRAINT `FKhwnk6dulhm64kyttixa7rqpya` FOREIGN KEY (`transaksi_id`) REFERENCES `transaksi` (`transaksi_id`);
+
+--
+-- Ketidakleluasaan untuk tabel `menu`
+--
+ALTER TABLE `menu`
+  ADD CONSTRAINT `FKqgulvi0s4b35s89rg574es31f` FOREIGN KEY (`kategori_id`) REFERENCES `kategori` (`kategori_id`);
 
 --
 -- Ketidakleluasaan untuk tabel `menu_kategori`
@@ -312,6 +345,12 @@ ALTER TABLE `transaksi`
 ALTER TABLE `menu_kategori`
   ADD CONSTRAINT `fk_menu_kategori_kategori` FOREIGN KEY (`kategori_id`) REFERENCES `kategori` (`kategori_id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_menu_kategori_menu` FOREIGN KEY (`menu_id`) REFERENCES `menu` (`menu_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Ketidakleluasaan untuk tabel `transaksi`
+--
+ALTER TABLE `transaksi`
+  ADD CONSTRAINT `FKh5inapgw4e21sejwio4im1iq8` FOREIGN KEY (`karyawan_id`) REFERENCES `karyawan` (`karyawan_id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
