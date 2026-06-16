@@ -48,15 +48,83 @@ class _TransaksiPageState extends State<TransaksiPage> {
   }
 
   void _add(MenuModel menu) {
-    if (menu.stok <= 0) return;
+    final existing = _cart[menu.menuId];
+    final currentQty = existing?.qty ?? 0;
+    final requestedQty = currentQty + 1;
+
+    if (menu.stok <= 0 || requestedQty > menu.stok) {
+      _showStockWarning(menu: menu, currentQty: currentQty, requestedQty: requestedQty);
+      return;
+    }
+
     setState(() {
-      final existing = _cart[menu.menuId];
       if (existing == null) {
         _cart[menu.menuId] = _CartItem(menu: menu, qty: 1);
-      } else if (existing.qty < menu.stok) {
+      } else {
         existing.qty++;
       }
     });
+  }
+
+  void _showStockWarning({required MenuModel menu, required int currentQty, required int requestedQty}) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 18),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(color: const Color(0xFFFFF3E0), borderRadius: BorderRadius.circular(14)),
+              child: const Icon(Icons.priority_high_rounded, color: Color(0xFFE67E22), size: 30),
+            ),
+            const SizedBox(height: 18),
+            const Text('Stok Tidak Cukup', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF2D3436))),
+            const SizedBox(height: 8),
+            Text(
+              'Pesanan ${menu.namaItem} tidak dapat ditambahkan karena jumlah melebihi stok yang tersedia.',
+              style: const TextStyle(color: Color(0xFF636E72), height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF8EF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFFD8A8)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Stok tersedia: ${menu.stok}', style: const TextStyle(color: Color(0xFFD35400), fontWeight: FontWeight.w600)),
+                  Text('Jumlah di keranjang: $currentQty', style: const TextStyle(color: Color(0xFFD35400), fontWeight: FontWeight.w600)),
+                  Text('Jumlah diminta: $requestedQty', style: const TextStyle(color: Color(0xFFD35400), fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2D3436),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Mengerti', style: TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _removeOne(int menuId) {
@@ -189,6 +257,8 @@ class _TransaksiPageState extends State<TransaksiPage> {
                           onSearch: (v) => setState(() => _search = v),
                           onAdd: _add,
                           onRemoveOne: _removeOne,
+                          onRemoveAll: _removeAll,
+                          onClear: _clearCart,
                           onPay: _pay,
                         ),
                 );
@@ -255,6 +325,7 @@ class _DesktopTransaksiLayout extends StatelessWidget {
                 onSearch: onSearch,
                 onAdd: onAdd,
                 onRemoveOne: onRemoveOne,
+                onRemoveAll: onRemoveAll,
                 compact: false,
               ),
             ),
@@ -290,6 +361,8 @@ class _MobileTransaksiLayout extends StatelessWidget {
   final ValueChanged<String> onSearch;
   final ValueChanged<MenuModel> onAdd;
   final ValueChanged<int> onRemoveOne;
+  final ValueChanged<int> onRemoveAll;
+  final VoidCallback onClear;
   final VoidCallback onPay;
 
   const _MobileTransaksiLayout({
@@ -302,6 +375,8 @@ class _MobileTransaksiLayout extends StatelessWidget {
     required this.onSearch,
     required this.onAdd,
     required this.onRemoveOne,
+    required this.onRemoveAll,
+    required this.onClear,
     required this.onPay,
   });
 
@@ -316,7 +391,7 @@ class _MobileTransaksiLayout extends StatelessWidget {
             children: [
               _SearchBox(value: search, onChanged: onSearch),
               const SizedBox(height: 16),
-              _MenuGrid(filtered: filtered, cart: cart, onAdd: onAdd, onRemoveOne: onRemoveOne, compact: true),
+              _MenuGrid(filtered: filtered, cart: cart, onAdd: onAdd, onRemoveOne: onRemoveOne, onRemoveAll: onRemoveAll, compact: true),
             ],
           ),
         ),
@@ -326,26 +401,45 @@ class _MobileTransaksiLayout extends StatelessWidget {
             decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, -4))]),
             child: SafeArea(
               top: false,
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('$qty item', style: const TextStyle(fontSize: 13, color: Color(0xFF636E72))),
-                        Text(f.format(total), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFFE67E22))),
-                      ],
-                    ),
+                  Row(
+                    children: [
+                      Expanded(child: Text('$qty item di keranjang', style: const TextStyle(fontSize: 13, color: Color(0xFF636E72)))),
+                      TextButton.icon(
+                        onPressed: isProcessing ? null : onClear,
+                        icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+                        label: const Text('Bersihkan'),
+                        style: TextButton.styleFrom(foregroundColor: const Color(0xFFE74C3C), visualDensity: VisualDensity.compact),
+                      ),
+                    ],
                   ),
-                  SizedBox(
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: isProcessing ? null : onPay,
-                      icon: isProcessing ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.shopping_cart_checkout),
-                      label: const Text('BAYAR', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE67E22), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), padding: const EdgeInsets.symmetric(horizontal: 28)),
-                    ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          f.format(total),
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFFE67E22)),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      SizedBox(
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: isProcessing ? null : onPay,
+                          icon: isProcessing ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.shopping_cart_checkout),
+                          label: const Text('BAYAR', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE67E22),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -391,9 +485,10 @@ class _MenuPanel extends StatelessWidget {
   final ValueChanged<String> onSearch;
   final ValueChanged<MenuModel> onAdd;
   final ValueChanged<int> onRemoveOne;
+  final ValueChanged<int> onRemoveAll;
   final bool compact;
 
-  const _MenuPanel({required this.filtered, required this.cart, required this.search, required this.onSearch, required this.onAdd, required this.onRemoveOne, required this.compact});
+  const _MenuPanel({required this.filtered, required this.cart, required this.search, required this.onSearch, required this.onAdd, required this.onRemoveOne, required this.onRemoveAll, required this.compact});
 
   @override
   Widget build(BuildContext context) {
@@ -413,7 +508,7 @@ class _MenuPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          _MenuGrid(filtered: filtered, cart: cart, onAdd: onAdd, onRemoveOne: onRemoveOne, compact: compact),
+          _MenuGrid(filtered: filtered, cart: cart, onAdd: onAdd, onRemoveOne: onRemoveOne, onRemoveAll: onRemoveAll, compact: compact),
         ],
       ),
     );
@@ -449,9 +544,10 @@ class _MenuGrid extends StatelessWidget {
   final Map<int, _CartItem> cart;
   final ValueChanged<MenuModel> onAdd;
   final ValueChanged<int> onRemoveOne;
+  final ValueChanged<int> onRemoveAll;
   final bool compact;
 
-  const _MenuGrid({required this.filtered, required this.cart, required this.onAdd, required this.onRemoveOne, required this.compact});
+  const _MenuGrid({required this.filtered, required this.cart, required this.onAdd, required this.onRemoveOne, required this.onRemoveAll, required this.compact});
 
   @override
   Widget build(BuildContext context) {
@@ -481,6 +577,7 @@ class _MenuGrid extends StatelessWidget {
           compact: compact,
           onAdd: () => onAdd(menu),
           onRemove: () => onRemoveOne(menu.menuId),
+          onRemoveAll: () => onRemoveAll(menu.menuId),
         );
       },
     );
@@ -493,18 +590,20 @@ class _MenuCard extends StatelessWidget {
   final bool compact;
   final VoidCallback onAdd;
   final VoidCallback onRemove;
+  final VoidCallback onRemoveAll;
 
-  const _MenuCard({required this.menu, required this.qty, required this.compact, required this.onAdd, required this.onRemove});
+  const _MenuCard({required this.menu, required this.qty, required this.compact, required this.onAdd, required this.onRemove, required this.onRemoveAll});
 
   @override
   Widget build(BuildContext context) {
     final f = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
     final isOut = menu.stok <= 0;
+    final isMax = qty >= menu.stok && menu.stok > 0;
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(15),
       child: InkWell(
-        onTap: isOut ? null : onAdd,
+        onTap: onAdd,
         borderRadius: BorderRadius.circular(15),
         child: Container(
           padding: EdgeInsets.all(compact ? 10 : 14),
@@ -515,7 +614,17 @@ class _MenuCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              MenuImage(menu: menu, width: double.infinity, height: compact ? 58 : 66, borderRadius: BorderRadius.circular(10)),
+              Stack(
+                children: [
+                  MenuImage(menu: menu, width: double.infinity, height: compact ? 58 : 66, borderRadius: BorderRadius.circular(10)),
+                  if (qty > 0)
+                    Positioned(
+                      top: 5,
+                      right: 5,
+                      child: _ClearItemChip(onTap: onRemoveAll),
+                    ),
+                ],
+              ),
               SizedBox(height: compact ? 8 : 10),
               Text(
                 menu.namaItem,
@@ -553,11 +662,33 @@ class _MenuCard extends StatelessWidget {
                     _SquareButton(icon: Icons.remove, onTap: onRemove, color: const Color(0xFFE74C3C), size: compact ? 28 : 30),
                     SizedBox(width: compact ? 4 : 6),
                   ],
-                  _SquareButton(icon: Icons.add, onTap: isOut ? () {} : onAdd, color: isOut ? const Color(0xFFB2BEC3) : const Color(0xFF2D3436), size: compact ? 30 : 30),
+                  _SquareButton(icon: Icons.add, onTap: onAdd, color: isOut || isMax ? const Color(0xFFB2BEC3) : const Color(0xFF2D3436), size: compact ? 30 : 30),
                 ],
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ClearItemChip extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ClearItemChip({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFFE74C3C),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: const SizedBox(
+          width: 26,
+          height: 26,
+          child: Icon(Icons.close_rounded, color: Colors.white, size: 16),
         ),
       ),
     );
